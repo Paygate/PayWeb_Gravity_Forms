@@ -5,7 +5,7 @@ This is the DPO PayGate PayWeb3 plugin for Gravity Forms. Please feel free to co
 
 ## Installation
 
-Please navigate to the [releases page](https://github.com/PayGate/PayWeb_Gravity_Forms/releases), download the latest release (v1.0.1) and unzip. You will them be able to follow the integration guide PDF which is included in the zip.
+Please navigate to the [releases page](https://github.com/PayGate/PayWeb_Gravity_Forms/releases), download the latest release (v2.2.8) and unzip. You will them be able to follow the integration guide PDF which is included in the zip.
 
 ## Collaboration
 
