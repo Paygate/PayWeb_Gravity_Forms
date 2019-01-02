@@ -1,5 +1,5 @@
 # PayWeb_Gravity_Forms
-## DPO PayGate Gravity Forms plugin v2.2.9 for Gravity Forms v2.2.5.21, WordPress v4.9.2
+## DPO PayGate Gravity Forms plugin v2.2.9 for Gravity Forms v2.4.4, WordPress v4.9.2
 
 This is the DPO PayGate PayWeb3 plugin for Gravity Forms. Please feel free to contact the DPO PayGate support team at support@paygate.co.za should you require any assistance.
 
