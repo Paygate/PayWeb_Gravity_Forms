@@ -2,9 +2,9 @@
 
 /*
 Plugin Name: Gravity Forms PayGate Add-On
-Plugin URI: http://www.gravityforms.com
+Plugin URI: https://github.com/PayGate/PayWeb_Gravity_Forms
 Description: Integrates Gravity Forms with PayGate, a South African payment gateway.
-Version: 2.2.8
+Version: 2.2.9
 Author: PayGate (Pty) Ltd
 Author URI: https://www.paygate.co.za/
 Developer: App Inlet (Pty) Ltd
@@ -49,6 +49,37 @@ class GF_PayGate_Bootstrap
         require_once 'paygate_gf_class.php';
 
         GFAddOn::register( 'PayGateGF' );
+
+        /**
+         * Auto updates from GIT
+         *
+         * @since 2.2.9
+         *
+         */
+
+        require_once 'updater.class.php';
+
+        if ( is_admin() ) {
+            // note the use of is_admin() to double check that this is happening in the admin
+
+            $config = array(
+                'slug'               => plugin_basename( __FILE__ ),
+                'proper_folder_name' => 'gravity-forms-paygate-plugin',
+                'api_url'            => 'https://api.github.com/repos/PayGate/PayWeb_Gravity_Forms',
+                'raw_url'            => 'https://raw.github.com/PayGate/PayWeb_Gravity_Forms/master',
+                'github_url'         => 'https://github.com/PayGate/PayWeb_Gravity_Forms',
+                'zip_url'            => 'https://github.com/PayGate/PayWeb_Gravity_Forms/archive/master.zip',
+                'homepage'           => 'https://github.com/PayGate/PayWeb_Gravity_Forms',
+                'sslverify'          => true,
+                'requires'           => '4.0',
+                'tested'             => '4.9.8',
+                'readme'             => 'README.md',
+                'access_token'       => '',
+            );
+
+            new WP_GitHub_Updater( $config );
+
+        }
     }
 
 }
@@ -146,4 +177,41 @@ function GF_encryption( $string, $action = 'e' )
     }
 
     return $output;
+}
+
+add_action( 'plugins_loaded', 'plugin_auto_updater', 0 );
+
+function plugin_auto_updater()
+{
+    /**
+     * Auto updates from GIT
+     *
+     * @since 2.2.9
+     *
+     */
+
+    require_once 'updater.class.php';
+
+    if ( is_admin() ) {
+        // note the use of is_admin() to double check that this is happening in the admin
+
+        $config = array(
+            'slug'               => plugin_basename( __FILE__ ),
+            'proper_folder_name' => 'gravity-forms-paygate-plugin',
+            'api_url'            => 'https://api.github.com/repos/PayGate/PayWeb_Gravity_Forms',
+            'raw_url'            => 'https://raw.github.com/PayGate/PayWeb_Gravity_Forms/master',
+            'github_url'         => 'https://github.com/PayGate/PayWeb_Gravity_Forms',
+            'zip_url'            => 'https://github.com/PayGate/PayWeb_Gravity_Forms/archive/master.zip',
+            'homepage'           => 'https://github.com/PayGate/PayWeb_Gravity_Forms',
+            'sslverify'          => true,
+            'requires'           => '4.0',
+            'tested'             => '4.9.8',
+            'readme'             => 'README.md',
+            'access_token'       => '',
+        );
+
+        new WP_GitHub_Updater( $config );
+
+    }
+
 }
