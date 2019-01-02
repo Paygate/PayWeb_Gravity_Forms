@@ -3,7 +3,7 @@
  * Copyright (c) 2018 PayGate (Pty) Ltd
  *
  * Author: App Inlet (Pty) Ltd
- * 
+ *
  * Released under the GNU General Public License
  */
 add_action( 'parse_request', array( "PayGateGF", "notify_handler" ) );
