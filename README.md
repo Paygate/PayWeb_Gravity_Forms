@@ -1,10 +1,10 @@
 # PayWeb_Gravity_Forms
-## DPO PayGate Gravity Forms plugin v2.2.9 for Gravity Forms v2.4.4, WordPress v4.9.2
+## PayGate Gravity Forms plugin v2.2.9 for Gravity Forms v2.4.4, WordPress v4.9.2
 
-This is the DPO PayGate PayWeb3 plugin for Gravity Forms. Please feel free to contact the DPO PayGate support team at support@paygate.co.za should you require any assistance.
+This is the PayGate PayWeb3 plugin for Gravity Forms. Please feel free to contact the PayGate support team at support@paygate.co.za should you require any assistance.
 
 ## Installation
-[![How To Setup DPO | PayGate PayWeb for Gravity Forms](https://www.appinlet.com/wp-content/uploads/2018/09/Gravity-Forms-Integration.jpg)](https://www.youtube.com/watch?v=r5nx1EfyOlo "How To Setup DPO | PayGate PayWeb for Gravity Forms")
+[![How To Setup PayGate PayWeb for Gravity Forms](https://www.appinlet.com/wp-content/uploads/2018/09/Gravity-Forms-Integration.jpg)](https://www.youtube.com/watch?v=r5nx1EfyOlo "How To Setup PayGate PayWeb for Gravity Forms")
 
 Please navigate to the [releases page](https://github.com/PayGate/PayWeb_Gravity_Forms/releases), download the latest release (v2.2.9) and unzip. You will them be able to follow the integration guide PDF which is included in the zip.
 
