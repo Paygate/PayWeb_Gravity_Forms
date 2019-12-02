@@ -4,15 +4,16 @@
  * Plugin Name: Gravity Forms PayGate Add-On
  * Plugin URI: https://github.com/PayGate/PayWeb_Gravity_Forms
  * Description: Integrates Gravity Forms with PayGate, a South African payment gateway.
- * Version: 2.2.9
+ * Version: 2.2.10
+ * Tested: 5.3.0
  * Author: PayGate (Pty) Ltd
  * Author URI: https://www.paygate.co.za/
  * Developer: App Inlet (Pty) Ltd
  * Developer URI: https://www.appinlet.com/
  * Text Domain: gravityformspaygate
  * Domain Path: /languages
- * 
- * Copyright: © 2018 PayGate (Pty) Ltd.
+ *
+ * Copyright: © 2019 PayGate (Pty) Ltd.
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  */
@@ -27,7 +28,7 @@ add_action( 'plugins_loaded', 'paygate_init' );
 
 function paygate_init()
 {
-     /**
+    /**
      * Auto updates from GIT
      *
      * @since 2.2.9
@@ -49,7 +50,7 @@ function paygate_init()
             'homepage'           => 'https://github.com/PayGate/PayWeb_Gravity_Forms',
             'sslverify'          => true,
             'requires'           => '4.0',
-            'tested'             => '4.9.8',
+            'tested'             => '5.3.0',
             'readme'             => 'README.md',
             'access_token'       => '',
         );
