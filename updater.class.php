@@ -1,17 +1,17 @@
 <?php
 
 // Prevent loading this file directly and/or if the class is already defined
-if ( !defined( 'ABSPATH' ) || class_exists( 'WPGitHubUpdater' ) || class_exists( 'WP_GitHub_Updater' ) ) {
+if ( !defined( 'ABSPATH' ) || class_exists( 'WP_GitHub_Updater_PW3' ) ) {
     return;
 }
 
 /**
  *
  *
- * @version 1.6
+ * @version 1.7
  * @author Joachim Kudish <info@jkudish.com>
  * @link http://jkudish.com
- * @package WP_GitHub_Updater
+ * @package WP_GitHub_Updater_PW3
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @copyright Copyright (c) 2011-2013, Joachim Kudish
  *
@@ -32,13 +32,13 @@ if ( !defined( 'ABSPATH' ) || class_exists( 'WPGitHubUpdater' ) || class_exists(
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-class WP_GitHub_Updater
+class WP_GitHub_Updater_PW3
 {
 
     /**
      * GitHub Updater version
      */
-    const VERSION = 1.6;
+    const VERSION = 1.7;
 
     /**
      * @var $config the config for the updater
@@ -155,8 +155,20 @@ class WP_GitHub_Updater
             $this->config['zip_url'] = $zip_url;
         }
 
+        if ( !isset( $this->config['raw_response'] ) ) {
+            $this->config['raw_response'] = $this->get_raw_response();
+        }
+
         if ( !isset( $this->config['new_version'] ) ) {
             $this->config['new_version'] = $this->get_new_version();
+        }
+
+        if ( !isset( $this->config['new_tested'] ) ) {
+            $this->config['new_tested'] = $this->get_new_tested();
+        }
+
+        if ( !isset( $this->config['icons'] ) ) {
+            $this->config['icons'] = $this->get_icons();
         }
 
         if ( !isset( $this->config['last_updated'] ) ) {
@@ -223,6 +235,35 @@ class WP_GitHub_Updater
     }
 
     /**
+     * Get Icons from GitHub
+     *
+     * @since 1.7
+     * @return array $icons the plugin icons
+     */
+    public function get_icons()
+    {
+        $assest_url = $this->config['raw_url'] . '/assets/images/';
+        $icons      = array(
+            'default' => $assest_url . 'icon-128x128.png',
+            '1x'      => $assest_url . 'icon-128x128.png',
+            '2x'      => $assest_url . 'icon-256x256.png',
+        );
+        return $icons;
+    }
+
+    /**
+     * Get Raw Response from GitHub
+     *
+     * @since 1.7
+     * @return int $raw_response the raw response
+     */
+    public function get_raw_response()
+    {
+        $raw_response = $this->remote_get( trailingslashit( $this->config['raw_url'] ) . basename( $this->config['slug'] ) );
+        return $raw_response;
+    }
+
+    /**
      * Get New Version from GitHub
      *
      * @since 1.0
@@ -234,7 +275,7 @@ class WP_GitHub_Updater
 
         if ( $this->overrule_transients() || ( !isset( $version ) || !$version || '' == $version ) ) {
 
-            $raw_response = $this->remote_get( trailingslashit( $this->config['raw_url'] ) . basename( $this->config['slug'] ) );
+            $raw_response = $this->config['raw_response'];
 
             if ( is_wp_error( $raw_response ) ) {
                 $version = false;
@@ -253,26 +294,6 @@ class WP_GitHub_Updater
                 $version = $matches[1];
             }
 
-            // back compat for older readme version handling
-            // only done when there is no version found in file name
-            if ( false === $version ) {
-                $raw_response = $this->remote_get( trailingslashit( $this->config['raw_url'] ) . $this->config['readme'] );
-
-                if ( is_wp_error( $raw_response ) ) {
-                    return $version;
-                }
-
-                preg_match( '#^\s*`*~Current Version\:\s*([^~]*)~#im', $raw_response['body'], $__version );
-
-                if ( isset( $__version[1] ) ) {
-                    $version_readme = $__version[1];
-                    if ( -1 == version_compare( $version, $version_readme ) ) {
-                        $version = $version_readme;
-                    }
-
-                }
-            }
-
             // refresh every 6 hours
             if ( false !== $version ) {
                 set_site_transient( md5( $this->config['slug'] ) . '_new_version', $version, 60 * 60 * 6 );
@@ -281,6 +302,47 @@ class WP_GitHub_Updater
         }
 
         return $version;
+    }
+
+    /**
+     * Get New Tested from GitHub
+     *
+     * @since 1.7
+     * @return int $tested the tested number
+     */
+    public function get_new_tested()
+    {
+        $tested = get_site_transient( md5( $this->config['slug'] ) . '_new_tested' );
+
+        if ( $this->overrule_transients() || ( !isset( $tested ) || !$tested || '' == $tested ) ) {
+
+            $raw_response = $this->config['raw_response'];
+
+            if ( is_wp_error( $raw_response ) ) {
+                $tested = false;
+            }
+
+            if ( is_array( $raw_response ) ) {
+                if ( !empty( $raw_response['body'] ) ) {
+                    preg_match( '/.*Tested\:\s*(.*)$/mi', $raw_response['body'], $matches );
+                }
+
+            }
+
+            if ( empty( $matches[1] ) ) {
+                $tested = $this->config['tested'];
+            } else {
+                $tested = $matches[1];
+            }
+
+            // refresh every 6 hours
+            if ( false !== $tested ) {
+                set_site_transient( md5( $this->config['slug'] ) . '_new_tested', $tested, 60 * 60 * 6 );
+            }
+
+        }
+
+        return $tested;
     }
 
     /**
@@ -369,10 +431,18 @@ class WP_GitHub_Updater
      */
     public function get_changelog()
     {
-        $_changelog = $this->remote_get( $this->config['raw_url'] . '/changelog.txt' );
-        $_changelog = nl2br( $_changelog['body'] );
+        $_changelog = '';
+        if ( !is_wp_error( $this->config ) ) {
+            $_changelog = $this->remote_get( $this->config['raw_url'] . '/changelog.txt' );
+        }
+        if ( !is_wp_error( $_changelog ) ) {
+            $_changelog = nl2br( $_changelog['body'] );
+        } else {
+            $_changelog = '';
+        }
         // return
         return ( !empty( $_changelog ) ? $_changelog : 'Could not get changelog from server.' );
+
     }
 
     /**
@@ -413,6 +483,8 @@ class WP_GitHub_Updater
             $response->slug        = $this->config['proper_folder_name'];
             $response->url         = add_query_arg( array( 'access_token' => $this->config['access_token'] ), $this->config['github_url'] );
             $response->package     = $this->config['zip_url'];
+            $response->icons       = $this->config['icons'];
+            $response->tested      = $this->config['new_tested'];
 
             // If response is false, don't alter the transient
             if ( false !== $response ) {
@@ -439,25 +511,31 @@ class WP_GitHub_Updater
         // Check if this call API is for the right plugin
         if ( !isset( $response->slug ) || $response->slug != $this->config['proper_folder_name'] ) {
             return false;
+        } else {
+            $res               = new stdClass();
+            $res->name         = $this->config['plugin_name'];
+            $res->slug         = $this->config['slug'];
+            $res->version      = $this->config['new_version'];
+            $res->author       = $this->config['author'];
+            $res->homepage     = $this->config['homepage'];
+            $res->requires     = $this->config['requires'];
+            $res->tested       = $this->config['new_tested'];
+            $res->downloaded   = 0;
+            $res->last_updated = $this->config['last_updated'];
+            $res->sections     = array(
+                'description' => $this->config['description'],
+                'changelog'   => $this->config['changelog'],
+            );
+            $res->download_link = $this->config['zip_url'];
+
+            // Useful fields for a later version
+            // $res->rating = '100';
+            // $res->num_ratings = '1124';
+            // $res->active_installs = '11056';
+            // $res->downloaded = '18056';
+
+            return $res;
         }
-
-        $res               = new stdClass();
-        $res->name         = $this->config['plugin_name'];
-        $res->slug         = $this->config['slug'];
-        $res->version      = $this->config['new_version'];
-        $res->author       = $this->config['author'];
-        $res->homepage     = $this->config['homepage'];
-        $res->requires     = $this->config['requires'];
-        $res->tested       = $this->config['tested'];
-        $res->downloaded   = 0;
-        $res->last_updated = $this->config['last_updated'];
-        $res->sections     = array(
-            'description' => $this->config['description'],
-            'changelog'   => $this->config['changelog'],
-        );
-        $res->download_link = $this->config['zip_url'];
-
-        return $res;
     }
 
     /**

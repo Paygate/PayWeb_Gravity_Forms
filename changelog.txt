@@ -1,3 +1,5 @@
-= 2.2.9 - December 29, 2018 =
+= 2.2.10 - October 14, 2019 =
+* Fix WP Error in updater class
 
+= 2.2.9 - December 29, 2018 =
 * Add auto-update feature
