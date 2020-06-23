@@ -1,6 +1,6 @@
 <?php
 /*
- * Copyright (c) 2019 PayGate (Pty) Ltd
+ * Copyright (c) 2020 PayGate (Pty) Ltd
  *
  * Author: App Inlet (Pty) Ltd
  *
@@ -55,6 +55,11 @@ class PayGateGF extends GFPaymentAddOn
 
         add_filter( 'gform_disable_post_creation', array( $this, 'delay_post' ), 10, 3 );
         add_filter( 'gform_disable_notification', array( $this, 'delay_notification' ), 10, 4 );
+
+        add_action( 'gform_post_payment_action', function ( $entry, $action ) {
+            $form = GFAPI::get_form( $entry['form_id'] );
+            GFAPI::send_notifications( $form, $entry, rgar( $action, 'type' ) );
+        }, 10, 2 );
     }
 
     //----- SETTINGS PAGES ----------//
@@ -664,7 +669,8 @@ $html = ob_get_clean();
         }
 
         if ( $str = rgget( 'gf_paygate_return' ) ) {
-            $str = GF_encryption( $str, 'd' );
+            $str     = GF_encryption( $str, 'd' );
+            $homeUrl = home_url() . '/index.php/';
 
             parse_str( $str, $query );
             if ( wp_hash( 'ids=' . $query['ids'] ) == $query['hash'] ) {
@@ -693,16 +699,20 @@ $html = ob_get_clean();
                         GFFormsModel::add_note( $lead_id, '', 'PayGate Redirect Response', 'Transaction Approved, Pay Request ID: ' . $pay_request_id );
                         $confirmationPageUrl = $feed['0']['meta']['successPageUrl'];
                         $confirmationPageUrl = add_query_arg( array( 'eid' => $eid ), $confirmationPageUrl );
+                        GFAPI::send_notifications( $form, $lead, 'approved_payment' );
                         break;
-
                     case '4':
-                        $status_desc = 'cancelled';
+                        $status_desc         = 'cancelled';
+                        $confirmationPageUrl = $feed['0']['meta']['cancelUrl'];
+                        $confirmationPageUrl = add_query_arg( array( 'eid' => $eid ), $confirmationPageUrl );
                         GFAPI::update_entry_property( $lead_id, 'payment_status', 'Cancelled' );
                         GFFormsModel::add_note( $lead_id, '', 'PayGate Redirect Response', 'Transaction Cancelled, Pay Request ID: ' . $pay_request_id );
                         break;
                     default:
                         GFAPI::update_entry_property( $lead_id, 'payment_status', 'Declined' );
                         GFFormsModel::add_note( $lead_id, '', 'PayGate Redirect Response', 'Transaction declined, Pay Request ID: ' . $pay_request_id );
+                        $confirmationPageUrl = $feed['0']['meta']['failedPageUrl'];
+                        $confirmationPageUrl = add_query_arg( array( 'eid' => $eid ), $confirmationPageUrl );
                         break;
                 }
 
@@ -711,12 +721,8 @@ $html = ob_get_clean();
                 }
 
                 if ( $feed['0']['meta']['useCustomConfirmationPage'] == 'yes' ) {
-                    print "<form action='$confirmationPageUrl' method='post' name='paygate'>
-                            <input name='TRANSACTION_STATUS' type='hidden' value='" . $payGate->accessValue( 'TRANSACTION_STATUS', 'post' ) . "' />
-                              </form>
-                              <script>
-                                        document.forms['paygate'].submit();
-                              </script>";
+                    wp_redirect( $confirmationPageUrl, 302 );
+                    exit;
                 } else {
                     $confirmation_msg = 'Thanks for contacting us! We will get in touch with you shortly.';
                     // Display the correct message depending on transaction status
@@ -1068,7 +1074,7 @@ $html = ob_get_clean();
 
         add_filter( 'gform_addon_navigation', array( $this, 'maybe_create_menu' ) );
 
-        add_filter( 'gform_notification_events', array( $this, 'notification_events_dropdown' ) );
+        add_filter( 'gform_notification_events', array( $this, 'notification_events_dropdown' ), 10, 2 );
     }
 
     public function notification_events_dropdown( $notification_events )
