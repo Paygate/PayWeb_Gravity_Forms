@@ -1,5 +1,10 @@
+= 2.2.11 - June 23, 2020 =
+* Fix notify in redirect link.
+* Updated version and dates.
+* Tested with Gravity Forms 2.4.18 and Wordpress 5.4.2.
+
 = 2.2.10 - October 14, 2019 =
-* Fix WP Error in updater class
+* Fix WP Error in updater class.
 
 = 2.2.9 - December 29, 2018 =
-* Add auto-update feature
+* Add auto-update feature.
