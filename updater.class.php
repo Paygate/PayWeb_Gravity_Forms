@@ -1,7 +1,7 @@
 <?php
 
 // Prevent loading this file directly and/or if the class is already defined
-if ( !defined( 'ABSPATH' ) || class_exists( 'WP_GitHub_Updater_PW3' ) ) {
+if ( !defined( 'ABSPATH' ) || class_exists( 'WP_GitHub_Updater_PW3_GF' ) ) {
     return;
 }
 
@@ -11,7 +11,7 @@ if ( !defined( 'ABSPATH' ) || class_exists( 'WP_GitHub_Updater_PW3' ) ) {
  * @version 1.7
  * @author Joachim Kudish <info@jkudish.com>
  * @link http://jkudish.com
- * @package WP_GitHub_Updater_PW3
+ * @package WP_GitHub_Updater_PW3_GF
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  * @copyright Copyright (c) 2011-2013, Joachim Kudish
  *
@@ -32,7 +32,7 @@ if ( !defined( 'ABSPATH' ) || class_exists( 'WP_GitHub_Updater_PW3' ) ) {
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-class WP_GitHub_Updater_PW3
+class WP_GitHub_Updater_PW3_GF
 {
 
     /**
