@@ -6,7 +6,7 @@ This is the PayGate PayWeb3 plugin for Gravity Forms. Please feel free to contac
 ## Installation
 [![How To Setup PayGate PayWeb for Gravity Forms](https://www.appinlet.com/wp-content/uploads/2018/09/Gravity-Forms-Integration.jpg)](https://www.youtube.com/watch?v=r5nx1EfyOlo "How To Setup PayGate PayWeb for Gravity Forms")
 
-Please navigate to the [releases page](https://github.com/PayGate/PayWeb_Gravity_Forms/releases), download the latest release (v2.2.11) and unzip. You will them be able to follow the integration guide PDF which is included in the zip.
+Please navigate to the [releases page](https://github.com/PayGate/PayWeb_Gravity_Forms/releases), download the latest release (v2.2.11) and unzip. You will then be able to follow the integration guide PDF which is included in the zip.
 
 ## Collaboration
 
