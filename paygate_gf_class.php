@@ -881,8 +881,6 @@ $html = ob_get_clean();
             $payGate  = new PayGate();
             $instance = self::get_instance();
 
-            $instance->log_debug( "POST: " . print_r( $_POST, true ) );
-
             $errors       = false;
             $paygate_data = array();
 
