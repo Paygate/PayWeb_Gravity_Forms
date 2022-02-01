@@ -1,6 +1,6 @@
 <?php
 /*
- * Copyright (c) 2020 PayGate (Pty) Ltd
+ * Copyright (c) 2022 PayGate (Pty) Ltd
  *
  * Author: App Inlet (Pty) Ltd
  *
@@ -54,7 +54,6 @@ class PayGateGF extends GFPaymentAddOn
         parent::init_frontend();
 
         add_filter( 'gform_disable_post_creation', array( $this, 'delay_post' ), 10, 3 );
-        add_filter( 'gform_disable_notification', array( $this, 'delay_notification' ), 10, 4 );
 
         add_action( 'gform_post_payment_action', function ( $entry, $action ) {
             $form = GFAPI::get_form( $entry['form_id'] );
@@ -207,7 +206,7 @@ class PayGateGF extends GFPaymentAddOn
         $fields = array(
             array(
                 'name'  => 'logo',
-                'label' => __( '<img src=' . '"https://secure.paygate.co.za/payweb3/images/pglogo_transparent.png"' . ' style=' . '"margin:-10% 50px -8% -20px;"' . '></br></br>', 'gravityformspaygate' ),
+                'label' =>  __( 'PayGate PayWeb3', 'gravityformspaygate' ),
                 'type'  => 'custom' ),
         );
 
@@ -485,7 +484,7 @@ $html = ob_get_clean();
             'NOTIFY_URL'       => $notify_url,
             'USER1'            => $entry['created_by'],
             'USER2'            => get_bloginfo( 'admin_email' ),
-            'USER3'            => 'gravityforms-v2.2.8',
+            'USER3'            => 'gravityforms-v2.5.0',
         );
         $fields['CHECKSUM'] = md5( implode( '', $fields ) . $merchant_key );
         $payGate            = new PayGate();
@@ -867,10 +866,17 @@ $html = ob_get_clean();
     // Notification
     public static function notify_handler()
     {
-
         if ( isset( $_GET["page"] ) ) {
             // Notify paygate that the request was successful
-            echo "OK";
+            echo "OK   ";
+
+            $payRequestId = $_POST['PAY_REQUEST_ID'];
+            $transient = get_transient($payRequestId);
+            if (!$transient) {
+                set_transient($payRequestId, '1', 10);
+            } else {
+                return;
+            }
 
             $payGate  = new PayGate();
             $instance = self::get_instance();

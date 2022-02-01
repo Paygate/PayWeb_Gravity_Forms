@@ -1,3 +1,8 @@
+= 2.5.0 - February 01, 2022 =
+* Tested with Wordpress 5.9 and Gravity Forms 2.5.16.1.
+* Use correct plugin version.
+* Improve IPN reliability.
+
 = 2.2.11 - June 23, 2020 =
 * Fix notify in redirect link.
 * Updated version and dates.
