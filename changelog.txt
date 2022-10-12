@@ -1,3 +1,8 @@
+= 2.5.1 - October 12, 2022 =
+* Test Wordpress 6.0 and Gravity Forms 2.6.7.
+* Update for PHP 8.0.
+* Bug fixes and improvements.
+
 = 2.5.0 - February 01, 2022 =
 * Tested with Wordpress 5.9 and Gravity Forms 2.5.16.1.
 * Use correct plugin version.
