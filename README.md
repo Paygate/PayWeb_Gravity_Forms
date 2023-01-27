@@ -1,6 +1,6 @@
 # PayWeb_Gravity_Forms
 
-## PayGate Gravity Forms plugin v2.5.1 for Gravity Forms v2.6.7, WordPress v6.0
+## PayGate Gravity Forms plugin v2.5.2 for Gravity Forms v2.6.9, WordPress v6.1
 
 This is the PayGate PayWeb3 plugin for Gravity Forms. Please feel free to contact the PayGate support team at
 support@paygate.co.za should you require any assistance.
