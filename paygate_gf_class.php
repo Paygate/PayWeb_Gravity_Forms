@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Copyright (c) 2022 PayGate (Pty) Ltd
+ * Copyright (c) 2023 PayGate (Pty) Ltd
  *
  * Author: App Inlet (Pty) Ltd
  *
@@ -93,7 +93,7 @@ class PayGateGF extends GFPaymentAddOn
                                     'PayGate Redirect Response',
                                     'Transaction Approved, Pay Request ID: ' . $pay_request_id
                                 );
-                                GFAPI::send_notifications($form, $lead, 'approved_payment');
+                                GFAPI::send_notifications($form, $lead, 'complete_payment');
                             } else {
                                 GFFormsModel::add_note(
                                     $lead_id,
@@ -236,10 +236,6 @@ class PayGateGF extends GFPaymentAddOn
             if ( ! $errors) {
                 $instance->log_debug('Check status and update order');
 
-                // We are tapping into the Gravity Forms Payment events soe lets set a variable
-                // Depending on the status of our transaction
-                $payment_notification_event = '';
-
                 $lead = RGFormsModel::get_lead($notify_data['REFERENCE']);
 
                 $leadHasNotBeenProcessed = isset($lead['payment_status']) && $lead['payment_status'] != 'Approved';
@@ -268,21 +264,14 @@ class PayGateGF extends GFPaymentAddOn
                                 'payment_date',
                                 gmdate('y-m-d H:i:s')
                             );
-
-                            GFPaymentAddOn::insert_transaction(
-                                $notify_data['REFERENCE'],
-                                'complete_payment',
-                                $notify_data['REFERENCE'],
-                                number_format($notify_data['AMOUNT'] / 100, 2, ',', '')
-                            );
                             GFFormsModel::add_note(
                                 $notify_data['REFERENCE'],
                                 '',
                                 'PayGate Notify Response',
                                 'Transaction approved, PayGate TransId: ' . $notify_data['TRANSACTION_ID']
                             );
-                            // Set payment notification event
-                            $payment_notification_event = 'approved_payment';
+                            $form = GFAPI::get_form( $entry['form_id'] );
+                            GFAPI::send_notifications($form, $entry, 'complete_payment');
                         } else {
                             GFFormsModel::add_note(
                                 $notify_data['REFERENCE'],
@@ -301,19 +290,12 @@ class PayGateGF extends GFPaymentAddOn
                             'Transaction declined, PayGate TransId: ' . $notify_data['TRANSACTION_ID']
                         );
                         GFAPI::update_entry_property($notify_data['REFERENCE'], 'payment_status', 'Declined');
-                        // Set payment notification event
-                        // $payment_notification_event = 'declined_payment';
                         break;
                 }
 
                 $instance->log_debug('Send notifications.');
                 $instance->log_debug($entry);
                 $form = GFFormsModel::get_form_meta($entry['form_id']);
-
-                // Send payment event specific comms that tap into GravityForms Payment events
-                // https://www.gravityhelp.com/documentation/article/send-notifications-on-payment-events/
-                $instance->log_debug('Payment notification event: ' . $payment_notification_event);
-                GFAPI::send_notifications($form, $entry, $payment_notification_event);
             }
         }
     }
@@ -895,7 +877,7 @@ class PayGateGF extends GFPaymentAddOn
 
         $fields['USER1'] = $entry['created_by'];
         $fields['USER2'] = get_bloginfo('admin_email');
-        $fields['USER3'] = 'gravityforms-v2.5.1';
+        $fields['USER3'] = 'gravityforms-v2.5.2';
 
         $fields['CHECKSUM'] = md5(implode('', $fields) . $merchant_key);
         $payGate            = new PayGate();
@@ -1296,8 +1278,7 @@ class PayGateGF extends GFPaymentAddOn
     public function notification_events_dropdown($notification_events)
     {
         $payment_events = array(
-            'approved_payment' => __('Payment Approved', 'gravityforms'),
-            // 'declined_payment'       => __( 'Payment Declined', 'gravityforms' ),
+            'complete_payment' => __('Payment Complete', 'gravityforms')
         );
 
         return array_merge($notification_events, $payment_events);
@@ -1593,8 +1574,6 @@ class PayGateGF extends GFPaymentAddOn
         }
 
         // Sending notifications
-        // $notifications = rgars($feed, 'meta/selectedNotifications');
-        // GFCommon::send_notifications($notifications, $form, $entry, true, 'form_submission');
         GFAPI::send_notifications($form, $entry, 'form_submission');
 
         do_action('gform_paygate_fulfillment', $entry, $feed, $transaction_id, $amount);
