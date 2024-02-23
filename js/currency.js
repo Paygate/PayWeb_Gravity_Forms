@@ -60,15 +60,15 @@ function Currency(currency) {
     }
     let money = this.numberFormat(number, this.currency['decimals'], this.currency['decimal_separator'], this.currency['thousand_separator'])
 
-    var symbol_left = this.currency['symbol_left'] ? this.currency['symbol_left'] + this.currency['symbol_padding'] : ''
-    var symbol_right = this.currency['symbol_right'] ? this.currency['symbol_padding'] + this.currency['symbol_right'] : ''
+    let symbol_left = this.currency['symbol_left'] ? this.currency['symbol_left'] + this.currency['symbol_padding'] : ''
+    let symbol_right = this.currency['symbol_right'] ? this.currency['symbol_padding'] + this.currency['symbol_right'] : ''
     money = negative + this.htmlDecode(symbol_left) + money + this.htmlDecode(symbol_right)
     return money
   }
 
   this.numberFormat = function (number, decimals, dec_point, thousands_sep) {
     number = (number + '').replace(',', '').replace(' ', '')
-    var num = !isFinite(+number) ? 0 : +number,
+    let num = !isFinite(+number) ? 0 : +number,
       precedes = !isFinite(+decimals) ? 0 : Math.abs(decimals),
       sep = (typeof thousands_sep === 'undefined') ? ',' : thousands_sep,
       dec = (typeof dec_point === 'undefined') ? '.' : dec_point,
@@ -98,10 +98,10 @@ function Currency(currency) {
   }
 
   this.htmlDecode = function (text) {
-    var c, m, d = text
+    let c, m, d = text;
 
     // look for numerical entities &#34;
-    var arr = d.match(/&#\d{1,5};/g)
+    const arr = d.match(/&#\d{1,5};/g);
 
     // if no matches found in string then skip
     if (arr != null) {

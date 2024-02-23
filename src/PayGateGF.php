@@ -1,32 +1,42 @@
 <?php
 
 /*
- * Copyright (c) 2023 PayGate (Pty) Ltd
+ * Copyright (c) 2024 Payfast (Pty) Ltd
  *
  * Author: App Inlet (Pty) Ltd
  *
  * Released under the GNU General Public License
  */
-add_action('parse_request', array("PayGateGF", "notify_handler"));
-add_action('wp', array('PayGateGF', 'maybe_thankyou_page'), 5);
 
-GFForms::include_payment_addon_framework();
+namespace PayGate\GravityFormsPayGatePlugin;
 
-require_once 'paygate-tools.php';
-require_once dirname(__FILE__) . '/CountriesArray.php';
+// phpcs:disable
+add_action('parse_request', array(PayGateGF::class, "notify_handler"));
+add_action('wp', array(PayGateGF::class, 'maybe_thankyou_page'), 5);
+\GFForms::include_payment_addon_framework();
 
-class PayGateGF extends GFPaymentAddOn
+// phpcs:enable
+
+class PayGateGF extends \GFPaymentAddOn
 {
+    //phpcs:disable PSR2.Classes.PropertyDeclaration.Underscore
+    //phpcs:disable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
 
-    const DATE = 'y-m-d H:i:s';
+    private const PAYGATE_REDIRECT_RESPONSE = 'Paygate Redirect Response';
+    private const PAYGATE_NOTIFY_RESPONSE   = 'Paygate Notify Response';
+
+    public const         INIT_TRANS_URL     = 'https://secure.paygate.co.za/payweb3/initiate.trans';
+    public const         QUERY_TRANS_URL    = 'https://secure.paygate.co.za/payweb3/query.trans';
+    public const         PROCESSS_TRANS_URL = 'https://secure.paygate.co.za/payweb3/process.trans';
+    private const        DATE               = 'y-m-d H:i:s';
     private static $_instance = null;
     protected $_min_gravityforms_version = '2.2.5';
     protected $_slug = 'gravityformspaygate';
     protected $_path = 'gravityformspaygate/paygate.php';
     protected $_full_path = __FILE__;
     protected $_url = 'http://www.gravityforms.com';
-    protected $_title = 'Gravity Forms PayGate Add-On';
-    protected $_short_title = 'PayGate';
+    protected $_title = 'Gravity Forms Paygate Add-On';
+    protected $_short_title = 'Paygate';
     // Permissions
     protected $_supports_callbacks = true;
     protected $_capabilities = array('gravityforms_paygate', 'gravityforms_paygate_uninstall');
@@ -35,6 +45,9 @@ class PayGateGF extends GFPaymentAddOn
     protected $_capabilities_form_settings = 'gravityforms_paygate';
     protected $_capabilities_uninstall = 'gravityforms_paygate_uninstall';
     protected $_enable_rg_autoupgrade = false;
+
+    private const H6_TAG = '<h6>';
+    private const H6_TAG_CLOSING = '</h6>';
 
     public static function get_instance()
     {
@@ -49,7 +62,7 @@ class PayGateGF extends GFPaymentAddOn
     {
         $instance = self::get_instance();
 
-        if ( ! $instance->is_gravityforms_supported()) {
+        if (!$instance->is_gravityforms_supported()) {
             return;
         }
 
@@ -60,10 +73,10 @@ class PayGateGF extends GFPaymentAddOn
             if (wp_hash('ids=' . $query['ids']) == $query['hash']) {
                 list($form_id, $lead_id, $user_id, $feed_id) = explode('|', $query['ids']);
 
-                $form = GFAPI::get_form($form_id);
-                $lead = GFAPI::get_entry($lead_id);
+                $form = \GFAPI::get_form($form_id);
+                \GFAPI::get_entry($lead_id);
 
-                $feed = GFAPI::get_feeds($feed_id, $form_id, null, true);
+                $feed = \GFAPI::get_feeds($feed_id, $form_id, null, true);
                 // add `eid` to use Merge Tags on confirmation page.
                 $eid                 = GF_encryption($lead_id, 'e');
                 $confirmationPageUrl = $feed['0']['meta']['failedPageUrl'];
@@ -73,11 +86,11 @@ class PayGateGF extends GFPaymentAddOn
                 $status_desc = 'failed';
 
                 $pay_request_id = $payGate->accessValue('PAY_REQUEST_ID', 'post');
-                GFAPI::update_entry_property($lead_id, 'transaction_id', $pay_request_id);
+                \GFAPI::update_entry_property($lead_id, 'transaction_id', $pay_request_id);
 
                 $disableIPN = isset($feed['0']['meta']['disableipn']) && $feed['0']['meta']['disableipn'] == 'yes';
 
-                $lead = RGFormsModel::get_lead($lead_id);
+                $lead = \RGFormsModel::get_lead($lead_id);
 
                 $leadHasNotBeenProcessed = isset($lead['payment_status']) && $lead['payment_status'] != 'Approved';
 
@@ -86,19 +99,19 @@ class PayGateGF extends GFPaymentAddOn
                         $status_desc = 'approved';
                         if ($disableIPN) {
                             if ($leadHasNotBeenProcessed) {
-                                GFAPI::update_entry_property($lead_id, 'payment_status', 'Approved');
-                                GFFormsModel::add_note(
+                                \GFAPI::update_entry_property($lead_id, 'payment_status', 'Approved');
+                                \GFFormsModel::add_note(
                                     $lead_id,
                                     '',
-                                    'PayGate Redirect Response',
+                                    self::PAYGATE_REDIRECT_RESPONSE,
                                     'Transaction Approved, Pay Request ID: ' . $pay_request_id
                                 );
-                                GFAPI::send_notifications($form, $lead, 'complete_payment');
+                                \GFAPI::send_notifications($form, $lead, 'complete_payment');
                             } else {
-                                GFFormsModel::add_note(
+                                \GFFormsModel::add_note(
                                     $lead_id,
                                     '',
-                                    'PayGate Redirect Response',
+                                    self::PAYGATE_REDIRECT_RESPONSE,
                                     'Avoided additional process of this lead: ' . $pay_request_id
                                 );
                             }
@@ -109,11 +122,11 @@ class PayGateGF extends GFPaymentAddOn
                     case '4':
                         $status_desc = 'cancelled';
                         if ($disableIPN) {
-                            GFAPI::update_entry_property($lead_id, 'payment_status', 'Cancelled');
-                            GFFormsModel::add_note(
+                            \GFAPI::update_entry_property($lead_id, 'payment_status', 'Cancelled');
+                            \GFFormsModel::add_note(
                                 $lead_id,
                                 '',
-                                'PayGate Redirect Response',
+                                self::PAYGATE_REDIRECT_RESPONSE,
                                 'Transaction Cancelled, Pay Request ID: ' . $pay_request_id
                             );
                         }
@@ -122,11 +135,11 @@ class PayGateGF extends GFPaymentAddOn
                         break;
                     default:
                         if ($disableIPN) {
-                            GFAPI::update_entry_property($lead_id, 'payment_status', 'Declined');
-                            GFFormsModel::add_note(
+                            \GFAPI::update_entry_property($lead_id, 'payment_status', 'Declined');
+                            \GFFormsModel::add_note(
                                 $lead_id,
                                 '',
-                                'PayGate Redirect Response',
+                                self::PAYGATE_REDIRECT_RESPONSE,
                                 'Transaction declined, Pay Request ID: ' . $pay_request_id
                             );
                         }
@@ -135,8 +148,8 @@ class PayGateGF extends GFPaymentAddOn
                         break;
                 }
 
-                if ( ! class_exists('GFFormDisplay')) {
-                    require_once GFCommon::get_base_path() . '/form_display.php';
+                if (!class_exists('\GFFormDisplay')) {
+                    require_once \GFCommon::get_base_path() . '/form_display.php';
                 }
 
                 if ($feed['0']['meta']['useCustomConfirmationPage'] == 'yes') {
@@ -146,8 +159,8 @@ class PayGateGF extends GFPaymentAddOn
                     $confirmation_msg = 'Thanks for contacting us! We will get in touch with you shortly.';
                     // Display the correct message depending on transaction status
                     foreach ($form['confirmations'] as $row) {
-                        foreach ($row as $key => $val) {
-                            if (is_array($val) && empty($val)) {
+                        foreach ($row as $val) {
+                            if (is_array($val)) {
                                 continue;
                             }
                             $updatedVal = str_replace(' ', '', $val);
@@ -161,7 +174,7 @@ class PayGateGF extends GFPaymentAddOn
                     }
                     $confirmation_msg = apply_filters('the_content', $confirmation_msg);
 
-                    GFFormDisplay::$submission[$form_id] = array(
+                    \GFFormDisplay::$submission[$form_id] = array(
                         'is_confirmation'      => true,
                         'confirmation_message' => $confirmation_msg,
                         'form'                 => $form,
@@ -180,7 +193,7 @@ class PayGateGF extends GFPaymentAddOn
 
             $payRequestId = $_POST['PAY_REQUEST_ID'];
             $transient    = get_transient($payRequestId);
-            if ( ! $transient) {
+            if (!$transient) {
                 set_transient($payRequestId, '1', 10);
             } else {
                 return;
@@ -195,7 +208,7 @@ class PayGateGF extends GFPaymentAddOn
             $notify_data = array();
             $post_data   = '';
             // Get notify data
-            if ( ! $errors) {
+            if (!$errors) {
                 $paygate_data = $payGate->getPostData();
                 $instance->log_debug('Get posted data');
                 if ($paygate_data === false) {
@@ -203,8 +216,8 @@ class PayGateGF extends GFPaymentAddOn
                 }
             }
 
-            $entry = GFAPI::get_entry($paygate_data['REFERENCE']);
-            if ( ! $entry) {
+            $entry = \GFAPI::get_entry($paygate_data['REFERENCE']);
+            if (!$entry) {
                 $instance->log_error("Entry could not be found. Entry ID: {$paygate_data['REFERENCE']}. Aborting.");
 
                 return;
@@ -214,7 +227,7 @@ class PayGateGF extends GFPaymentAddOn
 
             // Verify security signature
             $checkSumParams = '';
-            if ( ! $errors) {
+            if (!$errors) {
                 foreach ($paygate_data as $key => $val) {
                     $post_data         .= $key . '=' . $val . "\n";
                     $notify_data[$key] = stripslashes($val);
@@ -226,76 +239,76 @@ class PayGateGF extends GFPaymentAddOn
                         $checkSumParams .= $val;
                     }
 
-                    if (sizeof($notify_data) == 0) {
+                    if (empty($notify_data)) {
                         $errors = true;
                     }
                 }
             }
 
             // Check status and update order
-            if ( ! $errors) {
+            if (!$errors) {
                 $instance->log_debug('Check status and update order');
 
-                $lead = RGFormsModel::get_lead($notify_data['REFERENCE']);
+                $lead = \RGFormsModel::get_lead($notify_data['REFERENCE']);
 
                 $leadHasNotBeenProcessed = isset($lead['payment_status']) && $lead['payment_status'] != 'Approved';
 
                 switch ($paygate_data['TRANSACTION_STATUS']) {
                     case '1':
-
                         if ($leadHasNotBeenProcessed) {
                             // Creates transaction
-                            GFAPI::update_entry_property($notify_data['REFERENCE'], 'payment_status', 'Approved');
-                            GFAPI::update_entry_property(
+                            \GFAPI::update_entry_property($notify_data['REFERENCE'], 'payment_status', 'Approved');
+                            \GFAPI::update_entry_property(
                                 $notify_data['REFERENCE'],
                                 'transaction_id',
                                 $notify_data['REFERENCE']
                             );
-                            GFAPI::update_entry_property($notify_data['REFERENCE'], 'transaction_type', '1');
-                            GFAPI::update_entry_property(
+                            \GFAPI::update_entry_property($notify_data['REFERENCE'], 'transaction_type', '1');
+                            \GFAPI::update_entry_property(
                                 $notify_data['REFERENCE'],
                                 'payment_amount',
                                 number_format($notify_data['AMOUNT'] / 100, 2, ',', '')
                             );
-                            GFAPI::update_entry_property($notify_data['REFERENCE'], 'is_fulfilled', '1');
-                            GFAPI::update_entry_property($notify_data['REFERENCE'], 'payment_method', 'PayGate');
-                            GFAPI::update_entry_property(
+                            \GFAPI::update_entry_property($notify_data['REFERENCE'], 'is_fulfilled', '1');
+                            \GFAPI::update_entry_property($notify_data['REFERENCE'], 'payment_method', 'Paygate');
+                            \GFAPI::update_entry_property(
                                 $notify_data['REFERENCE'],
                                 'payment_date',
                                 gmdate('y-m-d H:i:s')
                             );
-                            GFFormsModel::add_note(
+                            \GFFormsModel::add_note(
                                 $notify_data['REFERENCE'],
                                 '',
-                                'PayGate Notify Response',
-                                'Transaction approved, PayGate TransId: ' . $notify_data['TRANSACTION_ID']
+                                self::PAYGATE_NOTIFY_RESPONSE,
+                                'Transaction approved, Paygate TransId: ' . $notify_data['TRANSACTION_ID']
                             );
-                            $form = GFAPI::get_form( $entry['form_id'] );
-                            GFAPI::send_notifications($form, $entry, 'complete_payment');
+                            $form = \GFAPI::get_form($entry['form_id']);
+                            \GFAPI::send_notifications($form, $entry, 'complete_payment');
                         } else {
-                            GFFormsModel::add_note(
+                            \GFFormsModel::add_note(
                                 $notify_data['REFERENCE'],
                                 '',
-                                'PayGate Notify Response',
-                                'Avoided additional process of this lead, PayGate TransId: ' . $notify_data['TRANSACTION_ID']
+                                self::PAYGATE_NOTIFY_RESPONSE,
+                                'Avoided additional process of this lead, Paygate TransId: '
+                                . $notify_data['TRANSACTION_ID']
                             );
                         }
                         break;
 
                     default:
-                        GFFormsModel::add_note(
+                        \GFFormsModel::add_note(
                             $notify_data['REFERENCE'],
                             '',
-                            'PayGate Notify Response',
-                            'Transaction declined, PayGate TransId: ' . $notify_data['TRANSACTION_ID']
+                            self::PAYGATE_NOTIFY_RESPONSE,
+                            'Transaction declined, Paygate TransId: ' . $notify_data['TRANSACTION_ID']
                         );
-                        GFAPI::update_entry_property($notify_data['REFERENCE'], 'payment_status', 'Declined');
+                        \GFAPI::update_entry_property($notify_data['REFERENCE'], 'payment_status', 'Declined');
                         break;
                 }
 
                 $instance->log_debug('Send notifications.');
                 $instance->log_debug($entry);
-                $form = GFFormsModel::get_form_meta($entry['form_id']);
+                \GFFormsModel::get_form_meta($entry['form_id']);
             }
         }
     }
@@ -321,7 +334,7 @@ class PayGateGF extends GFPaymentAddOn
         $feed    = $paygate->get_feeds($form_id);
 
         // Ignore ITN messages from forms that are no longer configured with the PayGate add-on
-        if ( ! $feed) {
+        if (!$feed) {
             return false;
         }
 
@@ -334,10 +347,15 @@ class PayGateGF extends GFPaymentAddOn
 
         add_filter('gform_disable_post_creation', array($this, 'delay_post'), 10, 3);
 
-        add_action('gform_post_payment_action', function ($entry, $action) {
-            $form = GFAPI::get_form($entry['form_id']);
-            GFAPI::send_notifications($form, $entry, rgar($action, 'type'));
-        },         10, 2);
+        add_action(
+            'gform_post_payment_action',
+            function ($entry, $action) {
+                $form = \GFAPI::get_form($entry['form_id']);
+                \GFAPI::send_notifications($form, $entry, rgar($action, 'type'));
+            },
+            10,
+            2
+        );
     }
 
     public function plugin_settings_fields()
@@ -345,14 +363,14 @@ class PayGateGF extends GFPaymentAddOn
         $description = '
             <p style="text-align: left;">' .
                        __(
-                           'You will need a PayGate account in order to use the PayGate Add-On.',
+                           'You will need a Paygate account in order to use the Paygate Add-On.',
                            'gravityformspaygate'
                        ) .
                        '</p>
             <ul>
                 <li>' . sprintf(
-                           __('Go to the %sPayGate Website%s in order to register an account.', 'gravityformspaygate'),
-                           '<a href="https://www.paygate.co.za" target="_blank">',
+                           __('Go to the %sPaygate Website%s in order to register an account.', 'gravityformspaygate'),
+                           '<a href="https://payfast.io/paygate-signup/" target="_blank">',
                            '</a>'
                        ) . '</li>' .
                        '<li>' . __(
@@ -392,9 +410,9 @@ class PayGateGF extends GFPaymentAddOn
     public function feed_list_no_item_message()
     {
         $settings = $this->get_plugin_settings();
-        if ( ! rgar($settings, 'gf_paygate_configured')) {
+        if (!rgar($settings, 'gf_paygate_configured')) {
             return sprintf(
-                __('To get started, configure your %sPayGate Settings%s!', 'gravityformspaygate'),
+                __('To get started, configure your %sPaygate Settings%s!', 'gravityformspaygate'),
                 '<a href="' . admin_url('admin.php?page=gf_settings&subview=' . $this->_slug) . '">',
                 '</a>'
             );
@@ -405,53 +423,58 @@ class PayGateGF extends GFPaymentAddOn
 
     public function feed_settings_fields()
     {
-        define('H6_TAG', '</h6>');
-        define('H6_TAG_CLOSING', '</h6>');
-
         $default_settings = parent::feed_settings_fields();
 
-        //--add PayGate fields
+        //--add Paygate fields
         $fields = array(
             array(
                 'name'     => 'paygateMerchantId',
-                'label'    => __('PayGate ID ', 'gravityformspaygate'),
+                'label'    => __('Paygate ID ', 'gravityformspaygate'),
                 'type'     => 'text',
                 'class'    => 'medium',
                 'required' => true,
-                'tooltip'  => constant("H6_TAG") . __('PayGate ID', 'gravityformspaygate') . constant("H6_TAG_CLOSING") . __(
-                        'Enter your PayGate Merchant ID.',
-                        'gravityformspaygate'
-                    ),
+                'tooltip'  => self::H6_TAG .
+                              __('Paygate ID', 'gravityformspaygate') .
+                              self::H6_TAG_CLOSING.
+                              __(
+                                  'This is the PayGate ID, received from PayGate.',
+                                  'gravityformspaygate'
+                              ),
             ),
             array(
                 'name'     => 'paygateMerchantKey',
-                'label'    => __('Merchant Key', 'gravityformspaygate'),
+                'label'    => __('Encryption Key', 'gravityformspaygate'),
                 'type'     => 'text',
                 'class'    => 'medium',
                 'required' => true,
-                'tooltip'  => constant("H6_TAG") . __('PayGate Merchant Key', 'gravityformspaygate') . constant(
-                        "H6_TAG_CLOSING"
-                    ) . __('Enter your PayGate Merchant Key.', 'gravityformspaygate'),
+                'tooltip'  => self::H6_TAG  .
+                              __('Paygate Merchant Key', 'gravityformspaygate') .
+                              self::H6_TAG_CLOSING .
+                              __('This is the Encryption Key set in the PayGate Back Office.', 'gravityformspaygate'),
             ),
             array(
-                'name'          => 'useCustomConfirmationPage',
-                'label'         => __('Use Custom Confirmation Page', 'gravityformspaygate'),
+                'name'          => 'testmode',
+                'label'         => __('Test mode', 'gravityformspaygate'),
                 'type'          => 'radio',
                 'choices'       => array(
                     array(
-                        'id'    => 'gf_paygate_thankyou_yes',
+                        'id'    => 'gf_paygate_mode_test',
                         'label' => __('Yes', 'gravityformspaygate'),
                         'value' => 'yes'
                     ),
-                    array('id' => 'gf_paygate_thakyou_no', 'label' => __('No', 'gravityformspaygate'), 'value' => 'no'),
+                    array(
+                        'id'    => 'gf_paygate_mode_production',
+                        'label' => __('No', 'gravityformspaygate'),
+                        'value' => 'no'
+                    ),
                 ),
                 'horizontal'    => true,
-                'default_value' => 'yes',
-                'tooltip'       => constant("H6_TAG") . __(
-                        'Use Custom Confirmation Page',
-                        'gravityformspaygate'
-                    ) . constant("H6_TAG_CLOSING") . __(
-                                       'Select Yes to display custom confirmation thank you page to the user.',
+                'default_value' => 'no',
+                'tooltip'       => self::H6_TAG  .
+                                   __('Mode', 'gravityformspaygate') .
+                                   self::H6_TAG_CLOSING .
+                                   __(
+                                       'Uses a PayGate test account. Request test cards from PayGate',
                                        'gravityformspaygate'
                                    ),
             ),
@@ -473,10 +496,34 @@ class PayGateGF extends GFPaymentAddOn
                 ),
                 'horizontal'    => true,
                 'default_value' => 'no',
-                'tooltip'       => constant("H6_TAG") . __('Disable IPN', 'gravityformspaygate') . constant(
-                        "H6_TAG_CLOSING"
-                    ) . __(
-                                       'Select Yes to Disable the IPN notify method and use the redirect method instead.',
+                'tooltip'       => self::H6_TAG  .
+                                   __('Disable IPN', 'gravityformspaygate') .
+                                   self::H6_TAG_CLOSING .
+                                   __(
+                                       'Disable IPN notify method and use redirect method instead.',
+                                       'gravityformspaygate'
+                                   ),
+            ),
+            array(
+                'name'          => 'useCustomConfirmationPage',
+                'label'         => __('Use Custom Confirmation Page', 'gravityformspaygate'),
+                'type'          => 'radio',
+                'choices'       => array(
+                    array(
+                        'id'    => 'gf_paygate_thankyou_yes',
+                        'label' => __('Yes', 'gravityformspaygate'),
+                        'value' => 'yes'
+                    ),
+                    array('id' => 'gf_paygate_thakyou_no', 'label' => __('No', 'gravityformspaygate'), 'value' => 'no'),
+                ),
+                'horizontal'    => true,
+                'default_value' => 'yes',
+                'tooltip'       => self::H6_TAG  .
+                                   __(
+                                       'Use Custom Confirmation Page',
+                                       'gravityformspaygate'
+                                   ) . self::H6_TAG_CLOSING . __(
+                                       'Select Yes to display custom confirmation thank you page to the user.',
                                        'gravityformspaygate'
                                    ),
             ),
@@ -485,42 +532,24 @@ class PayGateGF extends GFPaymentAddOn
                 'label'   => __('Successful Page Url', 'gravityformspaygate'),
                 'type'    => 'text',
                 'class'   => 'medium',
-                'tooltip' => constant("H6_TAG") . __('Successful Page Url', 'gravityformspaygate') . constant(
-                        "H6_TAG_CLOSING"
-                    ) . __('Enter a thank you page url when a transaction is successful.', 'gravityformspaygate'),
+                'tooltip' => self::H6_TAG  .
+                             __('Successful Page Url', 'gravityformspaygate') .
+                             self::H6_TAG_CLOSING .
+                             __('Enter a thank you page url when a transaction is successful.', 'gravityformspaygate'),
             ),
             array(
                 'name'    => 'failedPageUrl',
                 'label'   => __('Failed Page Url', 'gravityformspaygate'),
                 'type'    => 'text',
                 'class'   => 'medium',
-                'tooltip' => constant("H6_TAG") . __('Failed Page Url', 'gravityformspaygate') . constant(
-                        "H6_TAG_CLOSING"
-                    ) . __('Enter a thank you page url when a transaction is failed.', 'gravityformspaygate'),
-            ),
-            array(
-                'name'          => 'mode',
-                'label'         => __('Mode', 'gravityformspaygate'),
-                'type'          => 'radio',
-                'choices'       => array(
-                    array(
-                        'id'    => 'gf_paygate_mode_production',
-                        'label' => __('Production', 'gravityformspaygate'),
-                        'value' => 'production'
-                    ),
-                    array(
-                        'id'    => 'gf_paygate_mode_test',
-                        'label' => __('Test', 'gravityformspaygate'),
-                        'value' => 'test'
-                    ),
-                ),
-                'horizontal'    => true,
-                'default_value' => 'production',
-                'tooltip'       => constant("H6_TAG") . __('Mode', 'gravityformspaygate') . constant("H6_TAG_CLOSING") . __(
-                        'Select Production to enable live transactions. Select Test for testing with the PayGate Sandbox.',
-                        'gravityformspaygate'
-                    ),
-            ),
+                'tooltip' => self::H6_TAG  .
+                             __('Failed Page Url', 'gravityformspaygate') .
+                             self::H6_TAG_CLOSING .
+                             __(
+                                 'Enter a thank you page url when a transaction is failed.',
+                                 'gravityformspaygate'
+                             ),
+            )
         );
 
         $default_settings = parent::add_field_after('feedName', $fields, $default_settings);
@@ -528,7 +557,7 @@ class PayGateGF extends GFPaymentAddOn
 
         $message          = array(
             'name'  => 'message',
-            'label' => __('PayGate does not currently support subscription billing', 'gravityformsstripe'),
+            'label' => __('Paygate does not currently support subscription billing', 'gravityformsstripe'),
             'style' => 'width:40px;text-align:center;',
             'type'  => 'checkbox',
         );
@@ -555,13 +584,17 @@ class PayGateGF extends GFPaymentAddOn
             $choices[] = array('label' => __('Donations', 'gravityformspaygate'), 'value' => 'donation');
         }
         $transaction_type['choices'] = $choices;
-        $default_settings            = $this->replace_field('transactionType', $transaction_type, $default_settings);
+        $default_settings            = $this->replace_field(
+            'transactionType',
+            $transaction_type,
+            $default_settings
+        );
         //-------------------------------------------------------------------------------------------------
 
         $fields = array(
             array(
                 'name'  => 'logo',
-                'label' => __('PayGate PayWeb3', 'gravityformspaygate'),
+                'label' => __('Paygate', 'gravityformspaygate'),
                 'type'  => 'custom'
             ),
         );
@@ -576,10 +609,14 @@ class PayGateGF extends GFPaymentAddOn
                 'type'     => 'text',
                 'class'    => 'medium',
                 'required' => false,
-                'tooltip'  => '<h6>' . __('Continue Button Label', 'gravityformspaygate') . '</h6>' . __(
-                        'Enter the text that should appear on the continue button once payment has been completed via PayGate.',
-                        'gravityformspaygate'
-                    ),
+                'tooltip'  => self::H6_TAG .
+                              __('Continue Button Label', 'gravityformspaygate') .
+                              self::H6_TAG_CLOSING .
+                              __(
+                                  'Enter the text that should appear on the continue button once payment has
+                                   been completed via Paygate.',
+                                  'gravityformspaygate'
+                              ),
             ),
             array(
                 'name'     => 'cancelUrl',
@@ -587,24 +624,32 @@ class PayGateGF extends GFPaymentAddOn
                 'type'     => 'text',
                 'class'    => 'medium',
                 'required' => false,
-                'tooltip'  => '<h6>' . __('Cancel URL', 'gravityformspaygate') . '</h6>' . __(
-                        'Enter the URL the user should be sent to should they cancel before completing their payment. It currently defaults to the PayGate website.',
-                        'gravityformspaygate'
-                    ),
+                'tooltip'  => self::H6_TAG .
+                              __('Cancel URL', 'gravityformspaygate') .
+                              self::H6_TAG_CLOSING .
+                              __(
+                                  'Enter the URL the user should be sent to should they cancel before completing
+                                   their payment. It currently defaults to the Paygate website.',
+                                  'gravityformspaygate'
+                              ),
             ),
         );
 
         // Add post fields if form has a post
         $form = $this->get_current_form();
-        if (GFCommon::has_post_field($form['fields'])) {
+        if (\GFCommon::has_post_field($form['fields'])) {
             $post_settings = array(
                 'name'    => 'post_checkboxes',
                 'label'   => __('Posts', 'gravityformspaygate'),
                 'type'    => 'checkbox',
-                'tooltip' => '<h6>' . __('Posts', 'gravityformspaygate') . '</h6>' . __(
-                        'Enable this option if you would like to only create the post after payment has been received.',
-                        'gravityformspaygate'
-                    ),
+                'tooltip' => self::H6_TAG .
+                             __('Posts', 'gravityformspaygate') .
+                             self::H6_TAG_CLOSING .
+                             __(
+                                 'Enable this option if you would like to only create the post after payment has
+                                  been received.',
+                                 'gravityformspaygate'
+                             ),
                 'choices' => array(
                     array(
                         'label' => __('Create post only when payment is received.', 'gravityformspaygate'),
@@ -617,7 +662,8 @@ class PayGateGF extends GFPaymentAddOn
                 $post_settings['choices'][] = array(
                     'label'    => __('Change post status when subscription is canceled.', 'gravityformspaygate'),
                     'name'     => 'change_post_status',
-                    'onChange' => 'var action = this.checked ? "draft" : ""; jQuery("#update_post_action").val(action);',
+                    'onChange' => 'var action = this.checked ? "draft" : "";
+                     jQuery("#update_post_action").val(action);',
                 );
             }
 
@@ -675,7 +721,7 @@ class PayGateGF extends GFPaymentAddOn
 
     public function field_map_title()
     {
-        return __('PayGate Field', 'gravityformspaygate');
+        return __('Paygate Field', 'gravityformspaygate');
     }
 
     public function settings_trial_period($field, $echo = true)
@@ -750,8 +796,8 @@ class PayGateGF extends GFPaymentAddOn
 
         <script type='text/javascript'>
           jQuery(document).ready(function () {
-            jQuery('#gf_paygate_custom_settings label.left_header').css('margin-left', '-200px')
-          })
+            jQuery('#gf_paygate_custom_settings label.left_header').css('margin-left', '-200px');
+          });
         </script>
 
         <?php
@@ -777,7 +823,8 @@ class PayGateGF extends GFPaymentAddOn
                 array('label' => __('Mark Post as Draft', 'gravityformspaygate'), 'value' => 'draft'),
                 array('label' => __('Delete Post', 'gravityformspaygate'), 'value' => 'delete'),
             ),
-            'onChange' => "var checked = jQuery(this).val() ? 'checked' : false; jQuery('#change_post_status').attr('checked', checked);",
+            'onChange' => "var checked = jQuery(this).val() ? 'checked' : false;
+             jQuery('#change_post_status').attr('checked', checked);",
         );
         $markup         .= '&nbsp;&nbsp;' . $this->settings_select($dropdown_field, false);
 
@@ -805,7 +852,8 @@ class PayGateGF extends GFPaymentAddOn
         $feed['meta'] = $settings;
         $feed         = apply_filters('gform_paygate_save_config', $feed);
 
-        // Call hook to validate custom settings/meta added using gform_paygate_action_fields or gform_paygate_add_option_group action hooks
+        // Call hook to validate custom settings/meta added using gform_paygate_action_fields or
+        // gform_paygate_add_option_group action hooks
         $is_validation_error = apply_filters('gform_paygate_config_validation', false, $feed);
         if ($is_validation_error) {
             // Fail save
@@ -822,7 +870,7 @@ class PayGateGF extends GFPaymentAddOn
     public function redirect_url($feed, $submission_data, $form, $entry)
     {
         // Don't process redirect url if request is a Paygate return
-        if ( ! rgempty('gf_paygate_return', $_GET)) {
+        if (!rgempty('gf_paygate_return', $_GET)) {
             return false;
         }
 
@@ -832,27 +880,30 @@ class PayGateGF extends GFPaymentAddOn
         unset($_SESSION['trans_cancelled']);
 
         // Updating lead's payment_status to Processing
-        GFAPI::update_entry_property($entry['id'], 'payment_status', 'Pending');
+        \GFAPI::update_entry_property($entry['id'], 'payment_status', 'Pending');
 
-        // Set return mode to 2 (Paygate will post info back to page). rm=1 seems to create lots of problems with the redirect back to the site. Defaulting it to 2.
+        // Set return mode to 2 (Paygate will post info back to page). rm=1 seems to create lots of problems
+        // with the redirect back to the site. Defaulting it to 2.
+
         $return_mode = '2';
 
         $return_url = $this->return_url(
-                $form['id'],
-                $entry['id'],
-                $entry['created_by'],
-                $feed['id']
-            ) . "&rm={$return_mode}";
+            $form['id'],
+            $entry['id'],
+            $entry['created_by'],
+            $feed['id']
+        );
+        $return_url .= "&rm={$return_mode}";
         $eid        = GF_encryption($entry['id'], 'e');
         $return_url = add_query_arg(array('eid' => $eid), $return_url);
 
-        // URL that will listen to notifications from PayGate
+        // URL that will listen to notifications from Paygate
         $notify_url   = get_bloginfo('url') . '/?page=gf_paygate';
-        $merchant_id  = $feed['meta']['mode'] == 'production' ? $feed['meta']['paygateMerchantId'] : '10011072130';
-        $merchant_key = $feed['meta']['mode'] == 'production' ? $feed['meta']['paygateMerchantKey'] : 'secret';
+        $merchant_id  = $feed['meta']['testmode'] == 'no' ? $feed['meta']['paygateMerchantId'] : '10011072130';
+        $merchant_key = $feed['meta']['testmode'] == 'no' ? $feed['meta']['paygateMerchantKey'] : 'secret';
 
         $country_code3 = 'ZAF';
-        $country_code2 = strtoupper(GFCommon::get_country_code($submission_data['country']));
+        $country_code2 = strtoupper(\GFCommon::get_country_code($submission_data['country']));
 
         if ($country_code2 != '' && ($country_code3 == null || $country_code3 == '')) {
             // Retrieve country code3
@@ -862,8 +913,13 @@ class PayGateGF extends GFPaymentAddOn
         $fields = array(
             'PAYGATE_ID'       => $merchant_id,
             'REFERENCE'        => $entry['id'],
-            'AMOUNT'           => number_format(GFCommon::get_order_total($form, $entry), 2, '', ''),
-            'CURRENCY'         => GFCommon::get_currency(),
+            'AMOUNT'           => number_format(
+                \GFCommon::get_order_total($form, $entry),
+                2,
+                '',
+                ''
+            ),
+            'CURRENCY'         => \GFCommon::get_currency(),
             'RETURN_URL'       => $return_url,
             'TRANSACTION_DATE' => date('Y-m-d H:m:s'),
             'LOCALE'           => 'en-za',
@@ -871,7 +927,7 @@ class PayGateGF extends GFPaymentAddOn
             'EMAIL'            => $submission_data['email'],
         );
         // Check if IPN is disabled
-        if ( ! isset($feed['meta']['disableipn']) || $feed['meta']['disableipn'] != 'yes') {
+        if (!isset($feed['meta']['disableipn']) || $feed['meta']['disableipn'] != 'yes') {
             $fields['NOTIFY_URL'] = $notify_url;
         }
 
@@ -881,11 +937,12 @@ class PayGateGF extends GFPaymentAddOn
 
         $fields['CHECKSUM'] = md5(implode('', $fields) . $merchant_key);
         $payGate            = new PayGate();
-        $response           = $payGate->curlPost('https://secure.paygate.co.za/payweb3/initiate.trans', $fields);
+        $response           = $payGate->curlPost(self::INIT_TRANS_URL, $fields);
         parse_str($response, $fields);
         unset($fields['CHECKSUM']);
         $checksum = md5(implode('', $fields) . $merchant_key);
         print $payGate->getPaygatePostForm($fields['PAY_REQUEST_ID'], $checksum);
+        exit;
     }
 
     public function get_product_query_string($submission_data, $entry_id)
@@ -916,18 +973,20 @@ class PayGateGF extends GFPaymentAddOn
 
                 if ($is_shipping) {
                     // Populate shipping info
-                    $shipping .= ! empty($unit_price) ? "&shipping_1={$unit_price}" : '';
+                    $shipping .= !empty($unit_price) ? "&shipping_1={$unit_price}" : '';
                 } else {
                     // Add product info to querystring
-                    $query_string .= "&item_name_{$product_index}={$product_name}&amount_{$product_index}={$unit_price}&quantity_{$product_index}={$quantity}";
+                    $query_string .= "&item_name_{$product_index}={$product_name}";
+                    $query_string .= "&amount_{$product_index}={$unit_price}&quantity_{$product_index}={$quantity}";
                 }
                 // Add options
-                if ( ! empty($options) && is_array($options)) {
+                if (!empty($options) && is_array($options)) {
                     $option_index = 1;
                     foreach ($options as $option) {
                         $option_label = urlencode($option['field_label']);
                         $option_name  = urlencode($option['option_name']);
-                        $query_string .= "&on{$option_index}_{$product_index}={$option_label}&os{$option_index}_{$product_index}={$option_name}";
+                        $query_string .= "&on{$option_index}_{$product_index}={$option_label}";
+                        $query_string .= "&os{$option_index}_{$product_index}={$option_name}";
                         $option_index++;
                     }
                 }
@@ -975,9 +1034,9 @@ class PayGateGF extends GFPaymentAddOn
                 $is_shipping     = rgar($item, 'is_shipping');
                 $product_options = '';
 
-                if ( ! $is_shipping) {
+                if (!$is_shipping) {
                     // Add options
-                    if ( ! empty($options) && is_array($options)) {
+                    if (!empty($options) && is_array($options)) {
                         $product_options = ' (';
                         foreach ($options as $option) {
                             $product_options .= $option['option_name'] . ', ';
@@ -989,13 +1048,13 @@ class PayGateGF extends GFPaymentAddOn
             }
         }
 
-        if ( ! empty($purpose)) {
+        if (!empty($purpose)) {
             $purpose = substr($purpose, 0, strlen($purpose) - 2);
         }
 
         $purpose = urlencode($purpose);
 
-        // Truncating to maximum length allowed by PayGate
+        // Truncating to maximum length allowed by Paygate
         if (strlen($purpose) > 127) {
             $purpose = substr($purpose, 0, 124) . '...';
         }
@@ -1018,14 +1077,14 @@ class PayGateGF extends GFPaymentAddOn
             if ($field['name'] == 'country') {
                 $value = class_exists('GF_Field_Address') ? GF_Fields::get('address')->get_country_code(
                     $value
-                ) : GFCommon::get_country_code($value);
+                ) : \GFCommon::get_country_code($value);
             } elseif ($field['name'] == 'state') {
                 $value = class_exists('GF_Field_Address') ? GF_Fields::get('address')->get_us_state_code(
                     $value
-                ) : GFCommon::get_us_state_code($value);
+                ) : \GFCommon::get_us_state_code($value);
             }
 
-            if ( ! empty($value)) {
+            if (!empty($value)) {
                 $fields .= "&{$field['name']}=" . urlencode($value);
             }
         }
@@ -1035,7 +1094,7 @@ class PayGateGF extends GFPaymentAddOn
 
     public function return_url($form_id, $lead_id, $user_id, $feed_id)
     {
-        $pageURL = GFCommon::is_ssl() ? 'https://' : 'http://';
+        $pageURL = \GFCommon::is_ssl() ? 'https://' : 'http://';
 
         $server_port = apply_filters('gform_paygate_return_url_port', $_SERVER['SERVER_PORT']);
 
@@ -1069,7 +1128,8 @@ class PayGateGF extends GFPaymentAddOn
 
     public function convert_interval($interval, $to_type)
     {
-        // Convert single character into long text for new feed settings or convert long text into single character for sending to paygate
+        // Convert single character into long text for new feed settings or convert long text into
+        // single character for sending to paygate
         // $to_type: text (change character to long text), OR char (change long text to character)
         if (empty($interval)) {
             return '';
@@ -1125,11 +1185,11 @@ class PayGateGF extends GFPaymentAddOn
         $feed            = $this->get_payment_feed($entry);
         $submission_data = $this->get_submission_data($feed, $form, $entry);
 
-        if ( ! $feed || empty($submission_data['payment_amount'])) {
+        if (!$feed || empty($submission_data['payment_amount'])) {
             return $is_disabled;
         }
 
-        return ! rgempty('delayPost', $feed['meta']);
+        return !rgempty('delayPost', $feed['meta']);
     }
 
     public function delay_notification($is_disabled, $notification, $form, $entry)
@@ -1138,7 +1198,7 @@ class PayGateGF extends GFPaymentAddOn
         $feed            = $this->get_payment_feed($entry);
         $submission_data = $this->get_submission_data($feed, $form, $entry);
 
-        if ( ! $feed || empty($submission_data['payment_amount'])) {
+        if (!$feed || empty($submission_data['payment_amount'])) {
             return $is_disabled;
         }
 
@@ -1159,7 +1219,7 @@ class PayGateGF extends GFPaymentAddOn
     {
         $feed = parent::get_payment_feed($entry, $form);
 
-        if (empty($feed) && ! empty($entry['id'])) {
+        if (empty($feed) && !empty($entry['id'])) {
             // Looking for feed created by legacy versions
             $feed = $this->get_paygate_feed_by_entry($entry['id']);
         }
@@ -1173,7 +1233,8 @@ class PayGateGF extends GFPaymentAddOn
     {
         if (empty($custom_field)) {
             $this->log_error(
-                __METHOD__ . '(): ITN request does not have a custom field, so it was not created by Gravity Forms. Aborting.'
+                __METHOD__ . '(): ITN request does not have a custom field, so it was not created by Gravity Forms.
+                 Aborting.'
             );
 
             return false;
@@ -1187,9 +1248,10 @@ class PayGateGF extends GFPaymentAddOn
         $hash_matches = apply_filters('gform_paygate_hash_matches', $hash_matches, $entry_id, $hash, $custom_field);
 
         // Validates that Entry Id wasn't tampered with
-        if ( ! rgpost('test_itn') && ! $hash_matches) {
+        if (!rgpost('test_itn') && !$hash_matches) {
             $this->log_error(
-                __METHOD__ . "(): Entry Id verification failed. Hash does not match. Custom field: {$custom_field}. Aborting."
+                __METHOD__ . "(): Entry Id verification failed. Hash does not match. Custom field: {$custom_field}.
+                 Aborting."
             );
 
             return false;
@@ -1210,7 +1272,7 @@ class PayGateGF extends GFPaymentAddOn
 
     public function modify_post($post_id, $action)
     {
-        if ( ! $post_id) {
+        if (!$post_id) {
             return false;
         }
 
@@ -1257,7 +1319,7 @@ class PayGateGF extends GFPaymentAddOn
         // Add actions to allow the payment status to be modified
         add_action('gform_payment_status', array($this, 'admin_edit_payment_status'), 3, 3);
 
-        if (version_compare(GFCommon::$version, '1.8.17.4', '<')) {
+        if (version_compare(\GFCommon::$version, '1.8.17.4', '<')) {
             // Using legacy hook
             add_action('gform_entry_info', array($this, 'admin_edit_payment_status_details'), 4, 2);
         } else {
@@ -1310,39 +1372,47 @@ class PayGateGF extends GFPaymentAddOn
     {
         ?>
         <script type="text/javascript">
-          function dismissMenu() {
-            jQuery('#gf_spinner').show()
+          function dismissMenu () {
+            jQuery('#gf_spinner').show();
             jQuery.post(ajaxurl, {
                 action: 'gf_dismiss_paygate_menu'
               },
               function (response) {
-                document.location.href = '?page=gf_edit_forms'
-                jQuery('#gf_spinner').hide()
+                document.location.href = '?page=gf_edit_forms';
+                jQuery('#gf_spinner').hide();
               }
-            )
+            );
 
           }
         </script>
 
         <div class="wrap about-wrap">
             <h1><?php
-                _e('PayGate Add-On', 'gravityformspaygate') ?></h1>
-            <div class="about-text"><?php
+                _e('Paygate Add-On', 'gravityformspaygate') ?></h1>
+            <div class="about-text">
+                <?php
                 _e(
-                    'Thank you for updating! The new version of the Gravity Forms PayGate Add-On makes changes to how you manage your PayGate integration.',
+                    'Thank you for updating! The new version of the Gravity Forms Paygate Add-On makes changes
+                     to how you manage your Paygate integration.',
                     'gravityformspaygate'
-                ) ?></div>
+                );
+                ?>
+            </div>
             <div class="changelog">
                 <hr/>
                 <div class="feature-section col two-col">
                     <div class="col-1">
                         <h3><?php
-                            _e('Manage PayGate Contextually', 'gravityformspaygate') ?></h3>
-                        <p><?php
+                            _e('Manage Paygate Contextually', 'gravityformspaygate') ?></h3>
+                        <p>
+                            <?php
                             _e(
-                                'PayGate Feeds are now accessed via the PayGate sub-menu within the Form Settings for the Form you would like to integrate PayGate with.',
+                                'Paygate Feeds are now accessed via the Paygate sub-menu within the
+                                 Form Settings for the Form you would like to integrate Paygate with.',
                                 'gravityformspaygate'
-                            ) ?></p>
+                            )
+                            ?>
+                        </p>
                     </div>
                 </div>
 
@@ -1352,7 +1422,7 @@ class PayGateGF extends GFPaymentAddOn
                     <input type="checkbox" name="dismiss_paygate_menu" value="1" onclick="dismissMenu();"> <label><?php
                         _e('I understand, dismiss this message!', 'gravityformspaygate') ?></label>
                     <img id="gf_spinner" src="<?php
-                    echo GFCommon::get_base_url() . '/images/spinner.gif' ?>" alt="<?php
+                    echo \GFCommon::get_base_url() . '/images/spinner.gif' ?>" alt="<?php
                     _e('Please wait...', 'gravityformspaygate') ?>" style="display:none;"/>
                 </form>
 
@@ -1364,12 +1434,16 @@ class PayGateGF extends GFPaymentAddOn
     public function admin_edit_payment_status($payment_status, $form, $lead)
     {
         // Allow the payment status to be edited when for paygate, not set to Approved/Paid, and not a subscription
-        if ( ! $this->is_payment_gateway($lead['id']) || strtolower(
-                                                             rgpost('save')
-                                                         ) != 'edit' || $payment_status == 'Approved' || $payment_status == 'Paid' || rgar(
-                                                                                                                                          $lead,
-                                                                                                                                          'transaction_type'
-                                                                                                                                      ) == 2) {
+        if (
+            !$this->is_payment_gateway($lead['id']) ||
+            strtolower(rgpost('save')) != 'edit' ||
+            $payment_status == 'Approved' ||
+            $payment_status == 'Paid' ||
+            rgar(
+                $lead,
+                'transaction_type'
+            ) == 2
+        ) {
             return $payment_status;
         }
 
@@ -1386,7 +1460,7 @@ class PayGateGF extends GFPaymentAddOn
     public function admin_edit_payment_date($payment_date, $form, $lead)
     {
         // Allow the payment date to be edited
-        if ( ! $this->is_payment_gateway($lead['id']) || strtolower(rgpost('save')) != 'edit') {
+        if (!$this->is_payment_gateway($lead['id']) || strtolower(rgpost('save')) != 'edit') {
             return $payment_date;
         }
 
@@ -1401,39 +1475,41 @@ class PayGateGF extends GFPaymentAddOn
     public function admin_edit_payment_transaction_id($transaction_id, $form, $lead)
     {
         // Allow the transaction ID to be edited
-        if ( ! $this->is_payment_gateway($lead['id']) || strtolower(rgpost('save')) != 'edit') {
+        if (!$this->is_payment_gateway($lead['id']) || strtolower(rgpost('save')) != 'edit') {
             return $transaction_id;
         }
 
-        return '<input type="text" id="paygate_transaction_id" name="paygate_transaction_id" value="' . $transaction_id . '">';
+        return '<input type="text" id="paygate_transaction_id" name="paygate_transaction_id" value="'
+               . $transaction_id . '">';
     }
 
     public function admin_edit_payment_amount($payment_amount, $form, $lead)
     {
         // Allow the payment amount to be edited
-        if ( ! $this->is_payment_gateway($lead['id']) || strtolower(rgpost('save')) != 'edit') {
+        if (!$this->is_payment_gateway($lead['id']) || strtolower(rgpost('save')) != 'edit') {
             return $payment_amount;
         }
 
         if (empty($payment_amount)) {
-            $payment_amount = GFCommon::get_order_total($form, $lead);
+            $payment_amount = \GFCommon::get_order_total($form, $lead);
         }
 
-        return '<input type="text" id="payment_amount" name="payment_amount" class="gform_currency" value="' . $payment_amount . '">';
+        return '<input type="text" id="payment_amount" name="payment_amount" class="gform_currency" value="'
+               . $payment_amount . '">';
     }
 
     public function admin_edit_payment_status_details($form_id, $lead)
     {
         $form_action = strtolower(rgpost('save'));
-        if ( ! $this->is_payment_gateway($lead['id']) || $form_action != 'edit') {
+        if (!$this->is_payment_gateway($lead['id']) || $form_action != 'edit') {
             return;
         }
 
         // Get data from entry to pre-populate fields
         $payment_amount = rgar($lead, 'payment_amount');
         if (empty($payment_amount)) {
-            $form           = GFFormsModel::get_form_meta($form_id);
-            $payment_amount = GFCommon::get_order_total($form, $lead);
+            $form           = \GFFormsModel::get_form_meta($form_id);
+            $payment_amount = \GFCommon::get_order_total($form, $lead);
         }
         $transaction_id = rgar($lead, 'transaction_id');
         $payment_date   = rgar($lead, 'payment_date');
@@ -1487,13 +1563,14 @@ class PayGateGF extends GFPaymentAddOn
     {
         check_admin_referer('gforms_save_entry', 'gforms_save_entry');
 
-        // Update payment information in admin, need to use this function so the lead data is updated before displayed in the sidebar info section
+        // Update payment information in admin, need to use this function so the lead data is updated before
+        // displayed in the sidebar info section
         $form_action = strtolower(rgpost('save'));
-        if ( ! $this->is_payment_gateway($lead_id) || $form_action != 'update') {
+        if (!$this->is_payment_gateway($lead_id) || $form_action != 'update') {
             return;
         }
         // Get lead
-        $lead = GFFormsModel::get_lead($lead_id);
+        $lead = \GFFormsModel::get_lead($lead_id);
 
         // Check if current payment status is processing
         if ($lead['payment_status'] != 'Processing') {
@@ -1507,7 +1584,7 @@ class PayGateGF extends GFPaymentAddOn
             $payment_status = $lead['payment_status'];
         }
 
-        $payment_amount      = GFCommon::to_number(rgpost('payment_amount'));
+        $payment_amount      = \GFCommon::to_number(rgpost('payment_amount'));
         $payment_transaction = rgpost('paygate_transaction_id');
         $payment_date        = rgpost('payment_date');
         if (empty($payment_date)) {
@@ -1530,8 +1607,9 @@ class PayGateGF extends GFPaymentAddOn
         $lead['payment_date']   = $payment_date;
         $lead['transaction_id'] = $payment_transaction;
 
-        // If payment status does not equal approved/paid or the lead has already been fulfilled, do not continue with fulfillment
-        if (($payment_status == 'Approved' || $payment_status == 'Paid') && ! $lead['is_fulfilled']) {
+        // If payment status does not equal approved/paid or the lead has already been fulfilled,
+        // do not continue with fulfillment
+        if (($payment_status == 'Approved' || $payment_status == 'Paid') && !$lead['is_fulfilled']) {
             $action['id']             = $payment_transaction;
             $action['type']           = 'complete_payment';
             $action['transaction_id'] = $payment_transaction;
@@ -1543,7 +1621,7 @@ class PayGateGF extends GFPaymentAddOn
         }
         // Update lead, add a note
         GFAPI::update_entry($lead);
-        GFFormsModel::add_note(
+        \GFFormsModel::add_note(
             $lead['id'],
             $user_id,
             $user_name,
@@ -1553,7 +1631,7 @@ class PayGateGF extends GFPaymentAddOn
                     'gravityformspaygate'
                 ),
                 $lead['payment_status'],
-                GFCommon::to_money($lead['payment_amount'], $lead['currency']),
+                \GFCommon::to_money($lead['payment_amount'], $lead['currency']),
                 $payment_transaction,
                 $lead['payment_date']
             )
@@ -1562,14 +1640,14 @@ class PayGateGF extends GFPaymentAddOn
 
     public function fulfill_order(&$entry, $transaction_id, $amount, $feed = null)
     {
-        if ( ! $feed) {
+        if (!$feed) {
             $feed = $this->get_payment_feed($entry);
         }
 
-        $form = GFFormsModel::get_form_meta($entry['form_id']);
+        $form = \GFFormsModel::get_form_meta($entry['form_id']);
         if (rgars($feed, 'meta/delayPost')) {
             $this->log_debug(__METHOD__ . '(): Creating post.');
-            $entry['post_id'] = GFFormsModel::create_post($form, $entry);
+            $entry['post_id'] = \GFFormsModel::create_post($form, $entry);
             $this->log_debug(__METHOD__ . '(): Post created.');
         }
 
@@ -1656,7 +1734,7 @@ class PayGateGF extends GFPaymentAddOn
         );
 
         foreach ($old_feed['meta'] as $key => $value) {
-            if ( ! in_array($key, $known_meta_keys)) {
+            if (!in_array($key, $known_meta_keys)) {
                 $new_meta[$key] = $value;
             }
         }
@@ -1668,7 +1746,8 @@ class PayGateGF extends GFPaymentAddOn
     {
         global $wpdb;
         $sql = $wpdb->prepare(
-            "UPDATE {$wpdb->prefix}rg_lead_meta SET meta_value=%s WHERE meta_key='payment_gateway' AND meta_value='paygate'",
+            "UPDATE {$wpdb->prefix}rg_lead_meta SET meta_value=%s
+                         WHERE meta_key='payment_gateway' AND meta_value='paygate'",
             $this->_slug
         );
         $wpdb->query($sql);
@@ -1679,10 +1758,11 @@ class PayGateGF extends GFPaymentAddOn
         global $wpdb;
         $sql = $wpdb->prepare(
             "UPDATE {$wpdb->prefix}rg_lead
-             SET payment_status='Paid', payment_method='PayGate'
+             SET payment_status='Paid', payment_method='Paygate'
              WHERE payment_status='Approved'
                     AND ID IN (
-                        SELECT lead_id FROM {$wpdb->prefix}rg_lead_meta WHERE meta_key='payment_gateway' AND meta_value=%s
+                        SELECT lead_id FROM {$wpdb->prefix}rg_lead_meta WHERE meta_key='payment_gateway'
+                              AND meta_value=%s
                     )",
             $this->_slug
         );
@@ -1727,13 +1807,9 @@ class PayGateGF extends GFPaymentAddOn
                     'cancelUrl'                    => rgar($old_feed['meta'], 'cancel_url'),
                     'disableNote'                  => rgar($old_feed['meta'], 'disable_note'),
                     'disableShipping'              => rgar($old_feed['meta'], 'disable_shipping'),
-                    'recurringAmount'              => rgar(
-                                                          $old_feed['meta'],
-                                                          'recurring_amount_field'
-                                                      ) == 'all' ? 'form_total' : rgar(
-                        $old_feed['meta'],
-                        'recurring_amount_field'
-                    ),
+                    'recurringAmount'              => rgar($old_feed['meta'], 'recurring_amount_field') == 'all' ?
+                        'form_total' :
+                        rgar($old_feed['meta'], 'recurring_amount_field'),
                     'recurring_amount_field'       => rgar($old_feed['meta'], 'recurring_amount_field'),
                     // For backwards compatibility of the delayed payment feature
                     'recurringTimes'               => rgar($old_feed['meta'], 'recurring_times'),
@@ -1804,12 +1880,14 @@ class PayGateGF extends GFPaymentAddOn
         // Copy transactions from the paygate transaction table to the add payment transaction table
         global $wpdb;
         $old_table_name = $this->get_old_transaction_table_name();
-        $this->log_debug(__METHOD__ . '(): Copying old PayGate transactions into new table structure.');
+        $this->log_debug(__METHOD__ . '(): Copying old Paygate transactions into new table structure.');
 
         $new_table_name = $this->get_new_transaction_table_name();
 
-        $sql = "INSERT INTO {$new_table_name} (lead_id, transaction_type, transaction_id, is_recurring, amount, date_created)
-                    SELECT entry_id, transaction_type, transaction_id, is_renewal, amount, date_created FROM {$old_table_name}";
+        $sql = "INSERT INTO {$new_table_name} (lead_id, transaction_type, transaction_id, is_recurring, amount,
+                   date_created)
+                    SELECT entry_id, transaction_type, transaction_id, is_renewal, amount, date_created
+                    FROM {$old_table_name}";
 
         $wpdb->query($sql);
 
@@ -1835,7 +1913,7 @@ class PayGateGF extends GFPaymentAddOn
         global $wpdb;
         $table_name = $wpdb->prefix . 'rg_paygate';
 
-        $form_table_name = GFFormsModel::get_form_table_name();
+        $form_table_name = \GFFormsModel::get_form_table_name();
         $sql             = "SELECT s.id, s.is_active, s.form_id, s.meta, f.title as form_title
                     FROM {$table_name} s
                     INNER JOIN {$form_table_name} f ON s.form_id = f.id";
@@ -1868,25 +1946,25 @@ class PayGateGF extends GFPaymentAddOn
         $feed_id = gform_get_meta($entry_id, 'paygate_feed_id');
         $feed    = $this->get_feed($feed_id);
 
-        return ! empty($feed) ? $feed : false;
+        return !empty($feed) ? $feed : false;
     }
 
     // This function kept static for backwards compatibility
 
     private function get_pending_reason($code)
     {
-        switch (strtolower($code)) {
-            case 'address':
-                return __(
-                    'The payment is pending because your customer did not include a confirmed shipping address and your Payment Receiving Preferences is set to allow you to manually accept or deny each of these payments. To change your preference, go to the Preferences section of your Profile.',
-                    'gravityformspaygate'
-                );
-
-            default:
-                return empty($code) ? __(
-                    'Reason has not been specified. For more information, contact PayGate Customer Service.',
-                    'gravityformspaygate'
-                ) : $code;
+        if (strtolower($code) == 'address') {
+            return __(
+                'The payment is pending because your customer did not include a confirmed shipping address and
+                     your Payment Receiving Preferences is set to allow you to manually accept or deny each of these
+                      payments. To change your preference, go to the Preferences section of your Profile.',
+                'gravityformspaygate'
+            );
+        } else {
+            return empty($code) ? __(
+                'Reason has not been specified. For more information, contact Paygate Customer Service.',
+                'gravityformspaygate'
+            ) : $code;
         }
     }
 

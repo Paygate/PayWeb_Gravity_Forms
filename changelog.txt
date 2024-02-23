@@ -1,3 +1,8 @@
+= 2.5.3 - February 23, 2024 =
+* Test Wordpress 6.4.3 and Gravity Forms 2.8.4.
+* Update for PHP 8.1.
+* Bug fixes and improvements.
+
 = 2.5.2 - January 27, 2023 =
 * Test Wordpress 6.1.1 and Gravity Forms 2.6.9.
 * Add support for Payment Complete event.
