@@ -1,9 +1,6 @@
 <?php
 
-// Prevent loading this file directly and/or if the class is already defined
-if ( ! defined('ABSPATH') || class_exists('WP_GitHub_Updater_PW3_GF')) {
-    return;
-}
+namespace PayGate\GravityFormsPayGatePlugin;
 
 /**
  *
@@ -32,13 +29,14 @@ if ( ! defined('ABSPATH') || class_exists('WP_GitHub_Updater_PW3_GF')) {
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-class WP_GitHub_Updater_PW3_GF
+class Updater
 {
+    // phpcs:disable PSR1.Methods.CamelCapsMethodName.NotCamelCaps
 
     /**
      * GitHub Updater version
      */
-    const VERSION = 1.7;
+    private const VERSION = 1.7;
 
     /**
      * @var $config the config for the updater
@@ -53,7 +51,8 @@ class WP_GitHub_Updater_PW3_GF
     public $missing_config;
 
     /**
-     * @var $github_data temporiraly store the data fetched from GitHub, allows us to only load the data once per class instance
+     * @var $github_data temporiraly store the data fetched from GitHub, allows us to only load the data once
+     * per class instance
      * @access private
      */
     private $github_data;
@@ -79,8 +78,9 @@ class WP_GitHub_Updater_PW3_GF
         $this->config = wp_parse_args($config, $defaults);
 
         // if the minimum config isn't set, issue a warning and bail
-        if ( ! $this->has_minimum_config()) {
-            $message = 'The GitHub Updater was initialized without the minimum required configuration, please check the config in your plugin. The following params are missing: ';
+        if (!$this->has_minimum_config()) {
+            $message = 'The GitHub Updater was initialized without the minimum required configuration,
+             please check the config in your plugin. The following params are missing: ';
             $message .= implode(',', $this->missing_config);
             _doing_it_wrong(__CLASS__, $message, self::VERSION);
 
@@ -122,7 +122,7 @@ class WP_GitHub_Updater_PW3_GF
             }
         }
 
-        return (empty($this->missing_config));
+        return empty($this->missing_config);
     }
 
     /**
@@ -132,7 +132,7 @@ class WP_GitHub_Updater_PW3_GF
      */
     public function overrule_transients()
     {
-        return (defined('WP_GITHUB_FORCE_UPDATE') && WP_GITHUB_FORCE_UPDATE);
+        return defined('WP_GITHUB_FORCE_UPDATE') && WP_GITHUB_FORCE_UPDATE;
     }
 
     /**
@@ -143,8 +143,9 @@ class WP_GitHub_Updater_PW3_GF
      */
     public function set_defaults()
     {
-        if ( ! empty($this->config['access_token'])) {
-            // See Downloading a zipball (private repo) https://help.github.com/articles/downloading-files-from-the-command-line
+        if (!empty($this->config['access_token'])) {
+            // See Downloading a zipball (private repo)
+            // https://help.github.com/articles/downloading-files-from-the-command-line
             extract(parse_url($this->config['zip_url'])); // $scheme, $host, $path
 
             $zip_url = $scheme . '://api.github.com/repos' . $path;
@@ -153,52 +154,52 @@ class WP_GitHub_Updater_PW3_GF
             $this->config['zip_url'] = $zip_url;
         }
 
-        if ( ! isset($this->config['raw_response'])) {
+        if (!isset($this->config['raw_response'])) {
             $this->config['raw_response'] = $this->get_raw_response();
         }
 
-        if ( ! isset($this->config['new_version'])) {
+        if (!isset($this->config['new_version'])) {
             $this->config['new_version'] = $this->get_new_version();
         }
 
-        if ( ! isset($this->config['new_tested'])) {
+        if (!isset($this->config['new_tested'])) {
             $this->config['new_tested'] = $this->get_new_tested();
         }
 
-        if ( ! isset($this->config['icons'])) {
+        if (!isset($this->config['icons'])) {
             $this->config['icons'] = $this->get_icons();
         }
 
-        if ( ! isset($this->config['last_updated'])) {
+        if (!isset($this->config['last_updated'])) {
             $this->config['last_updated'] = $this->get_date();
         }
 
-        if ( ! isset($this->config['description'])) {
+        if (!isset($this->config['description'])) {
             $this->config['description'] = $this->get_description();
         }
 
-        if ( ! isset($this->config['changelog'])) {
+        if (!isset($this->config['changelog'])) {
             $this->config['changelog'] = $this->get_changelog();
         }
 
         $plugin_data = $this->get_plugin_data();
-        if ( ! isset($this->config['plugin_name'])) {
+        if (!isset($this->config['plugin_name'])) {
             $this->config['plugin_name'] = $plugin_data['Name'];
         }
 
-        if ( ! isset($this->config['version'])) {
+        if (!isset($this->config['version'])) {
             $this->config['version'] = $plugin_data['Version'];
         }
 
-        if ( ! isset($this->config['author'])) {
+        if (!isset($this->config['author'])) {
             $this->config['author'] = $plugin_data['Author'];
         }
 
-        if ( ! isset($this->config['homepage'])) {
+        if (!isset($this->config['homepage'])) {
             $this->config['homepage'] = $plugin_data['PluginURI'];
         }
 
-        if ( ! isset($this->config['readme'])) {
+        if (!isset($this->config['readme'])) {
             $this->config['readme'] = 'README.md';
         }
     }
@@ -269,14 +270,14 @@ class WP_GitHub_Updater_PW3_GF
     {
         $version = get_site_transient(md5($this->config['slug']) . '_new_version');
 
-        if ($this->overrule_transients() || ( ! isset($version) || ! $version || '' == $version)) {
+        if ($this->overrule_transients() || (!isset($version) || !$version || '' == $version)) {
             $raw_response = $this->config['raw_response'];
 
             if (is_wp_error($raw_response)) {
                 $version = false;
             }
 
-            if (is_array($raw_response) && ! empty($raw_response['body'])) {
+            if (is_array($raw_response) && !empty($raw_response['body'])) {
                 preg_match('/.*Version\:\s*(.*)$/mi', $raw_response['body'], $matches);
             }
 
@@ -301,14 +302,14 @@ class WP_GitHub_Updater_PW3_GF
     {
         $tested = get_site_transient(md5($this->config['slug']) . '_new_tested');
 
-        if ($this->overrule_transients() || ( ! isset($tested) || ! $tested || '' == $tested)) {
+        if ($this->overrule_transients() || (!isset($tested) || !$tested || '' == $tested)) {
             $raw_response = $this->config['raw_response'];
 
             if (is_wp_error($raw_response)) {
                 $tested = false;
             }
 
-            if (is_array($raw_response) && ! empty($raw_response['body'])) {
+            if (is_array($raw_response) && !empty($raw_response['body'])) {
                 preg_match('/.*Tested\:\s*(.*)$/mi', $raw_response['body'], $matches);
             }
 
@@ -333,7 +334,7 @@ class WP_GitHub_Updater_PW3_GF
      */
     public function remote_get($query)
     {
-        if ( ! empty($this->config['access_token'])) {
+        if (!empty($this->config['access_token'])) {
             $query = add_query_arg(array('access_token' => $this->config['access_token']), $query);
         }
 
@@ -350,12 +351,12 @@ class WP_GitHub_Updater_PW3_GF
      */
     public function get_github_data()
     {
-        if (isset($this->github_data) && ! empty($this->github_data)) {
+        if (isset($this->github_data) && !empty($this->github_data)) {
             $github_data = $this->github_data;
         } else {
             $github_data = get_site_transient(md5($this->config['slug']) . '_github_data');
 
-            if ($this->overrule_transients() || ( ! isset($github_data) || ! $github_data || '' == $github_data)) {
+            if ($this->overrule_transients() || (!isset($github_data) || !$github_data || '' == $github_data)) {
                 $github_data = $this->remote_get($this->config['api_url']);
 
                 if (is_wp_error($github_data)) {
@@ -385,7 +386,7 @@ class WP_GitHub_Updater_PW3_GF
     {
         $_date = $this->get_github_data();
 
-        return ( ! empty($_date->updated_at)) ? date('Y-m-d', strtotime($_date->updated_at)) : false;
+        return (!empty($_date->updated_at)) ? date('Y-m-d', strtotime($_date->updated_at)) : false;
     }
 
     /**
@@ -398,7 +399,7 @@ class WP_GitHub_Updater_PW3_GF
     {
         $_description = $this->get_github_data();
 
-        return ( ! empty($_description->description)) ? $_description->description : false;
+        return (!empty($_description->description)) ? $_description->description : false;
     }
 
     /**
@@ -410,17 +411,17 @@ class WP_GitHub_Updater_PW3_GF
     public function get_changelog()
     {
         $_changelog = '';
-        if ( ! is_wp_error($this->config)) {
+        if (!is_wp_error($this->config)) {
             $_changelog = $this->remote_get($this->config['raw_url'] . '/changelog.txt');
         }
-        if ( ! is_wp_error($_changelog)) {
+        if (!is_wp_error($_changelog)) {
             $_changelog = nl2br($_changelog['body']);
         } else {
             $_changelog = '';
         }
 
         // return
-        return (! empty($_changelog) ? $_changelog : 'Could not get changelog from server.');
+        return !empty($_changelog) ? $_changelog : 'Could not get changelog from server.';
     }
 
     /**
@@ -458,7 +459,7 @@ class WP_GitHub_Updater_PW3_GF
         $update = version_compare($this->config['new_version'], $this->config['version']);
 
         if (1 === $update) {
-            $response              = new stdClass;
+            $response              = new \stdClass();
             $response->new_version = $this->config['new_version'];
             $response->slug        = $this->config['proper_folder_name'];
             $response->url         = add_query_arg(
@@ -491,7 +492,7 @@ class WP_GitHub_Updater_PW3_GF
     public function get_plugin_info($false, $action, $response)
     {
         // Check if this call API is for the right plugin
-        if ( ! isset($response->slug) || $response->slug != $this->config['proper_folder_name']) {
+        if (!isset($response->slug) || $response->slug != $this->config['proper_folder_name']) {
             return false;
         } else {
             $res                = new stdClass();

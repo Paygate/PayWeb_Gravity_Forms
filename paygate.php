@@ -1,23 +1,46 @@
 <?php
+
 /**
- * Plugin Name: Gravity Forms PayGate Add-On
+ * Plugin Name: Gravity Forms Paygate Add-On
  * Plugin URI: https://github.com/PayGate/PayWeb_Gravity_Forms
- * Description: Integrates Gravity Forms with PayGate, a South African payment gateway.
- * Version: 2.5.2
- * Tested: 6.1
- * Author: PayGate (Pty) Ltd
- * Author URI: https://www.paygate.co.za/
+ * Description: Integrates Gravity Forms with Paygate, a South African payment gateway.
+ * Version: 2.5.3
+ * Tested: 6.4
+ * Author: Payfast (Pty) Ltd
+ * Author URI: https://payfast.io/
  * Developer: App Inlet (Pty) Ltd
  * Developer URI: https://www.appinlet.com/
  * Text Domain: gravityformspaygate
  * Domain Path: /languages
  *
- * Copyright: © 2023 PayGate (Pty) Ltd.
+ * Copyright: © 2024 Payfast (Pty) Ltd.
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  */
 
-add_action('plugins_loaded', 'paygate_init');
+namespace PayGate\GravityFormsPayGatePlugin;
+
+// phpcs:disable
+require_once __DIR__ . '/vendor/autoload.php';
+
+$ns = '\\' . __NAMESPACE__ . '\\';
+
+add_action('plugins_loaded', "{$ns}paygate_init");
+add_filter('gform_pre_render', "{$ns}gform_pre_render_callback");
+add_filter('gform_pre_validation', "{$ns}cleanTransaction_status");
+add_filter('gform_after_submission', "{$ns}gw_conditional_requirement");
+
+ob_start();
+if (!headers_sent() && empty(session_id())) {
+    try {
+        session_start();
+    } catch (Exception $e) {
+        // Catch exception
+    }
+}
+
+add_action('gform_loaded', array(Bootstrap::class, 'load'), 5);
+// phpcs:enable
 
 /**
  * Initialize the gateway.
@@ -33,8 +56,6 @@ function paygate_init(): void
      * @since 2.2.9
      *
      */
-
-    require_once 'updater.class.php';
 
     if (is_admin()) {
         // note the use of is_admin() to double check that this is happening in the admin
@@ -54,46 +75,21 @@ function paygate_init(): void
             'access_token'       => '',
         );
 
-        new WP_GitHub_Updater_PW3_GF($config);
+        new Updater($config);
     }
-}
-
-ob_start();
-if ( !headers_sent() && empty(session_id())) {
-    try {
-        session_start();
-    } catch (Exception $e) {
-        // Catch exception
-    }
-}
-
-add_action('gform_loaded', array('GF_PayGate_Bootstrap', 'load'), 5);
-
-class GF_PayGate_Bootstrap
-{
-
-    public static function load()
-    {
-        if ( ! method_exists('GFForms', 'include_payment_addon_framework')) {
-            return;
-        }
-
-        require_once 'paygate_gf_class.php';
-
-        GFAddOn::register('PayGateGF');
-    }
-
 }
 
 function change_message($message, $form)
 {
-    if (isset($_SESSION['trans_failed']) && ! empty($_SESSION['trans_failed']) && strlen(
-                                                                                      $_SESSION['trans_failed']
-                                                                                  ) > 0) {
+    if (
+        isset($_SESSION['trans_failed']) && !empty($_SESSION['trans_failed']) && strlen(
+            $_SESSION['trans_failed']
+        ) > 0
+    ) {
         $err_msg = $_SESSION['trans_failed'];
 
         return "<div class='validation_error'>" . $_SESSION['trans_failed'] . '</div>';
-    } elseif (isset($_SESSION['trans_declined']) && ! empty($_SESSION['trans_declined'])) {
+    } elseif (isset($_SESSION['trans_declined']) && !empty($_SESSION['trans_declined'])) {
         $err_msg = $_SESSION['trans_declined'];
 
         return "<div class='validation_error'>" . $_SESSION['trans_declined'] . '</div>';
@@ -101,8 +97,6 @@ function change_message($message, $form)
         return $message;
     }
 }
-
-add_filter('gform_pre_render', 'gform_pre_render_callback');
 
 function gform_pre_render_callback($form)
 {
@@ -116,21 +110,21 @@ function gform_pre_render_callback($form)
     define('DIV_TAG_CLOSING', '</div>")');
     define('SCRIPT_TAG_CLOSING', '</script>');
 
-    if (isset($_SESSION['trans_failed']) && ! empty($_SESSION['trans_failed'])) {
+    if (isset($_SESSION['trans_failed']) && !empty($_SESSION['trans_failed'])) {
         $msg = $_SESSION['trans_failed'];
         echo constant("SCRIPT");
         echo constant("Query");
         echo constant("QUERY_FORM") . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
         echo '});';
         echo constant('SCRIPT_TAG_CLOSING');
-    } elseif (isset($_SESSION['trans_declined']) && ! empty($_SESSION['trans_declined'])) {
+    } elseif (isset($_SESSION['trans_declined']) && !empty($_SESSION['trans_declined'])) {
         $msg = $_SESSION['trans_declined'];
         echo constant("SCRIPT");
         echo constant('QUERY');
         echo constant("QUERY_FORM") . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
         echo '});';
         echo constant('SCRIPT_TAG_CLOSING');
-    } elseif (isset($_SESSION['trans_cancelled']) && ! empty($_SESSION['trans_cancelled'])) {
+    } elseif (isset($_SESSION['trans_cancelled']) && !empty($_SESSION['trans_cancelled'])) {
         $msg = $_SESSION['trans_cancelled'];
         echo constant("SCRIPT");
         echo constant('QUERY');
@@ -142,8 +136,6 @@ function gform_pre_render_callback($form)
     return $form;
 }
 
-add_filter('gform_pre_validation', 'cleanTransaction_status');
-
 function cleanTransaction_status($form)
 {
     unset($_SESSION['trans_failed']);
@@ -153,16 +145,15 @@ function cleanTransaction_status($form)
     return $form;
 }
 
-add_filter('gform_after_submission', 'gw_conditional_requirement');
-
 function gw_conditional_requirement($form)
 {
-    if (isset($_SESSION['trans_failed']) && ! empty($_SESSION['trans_failed'])) {
+    global $ns;
+    if (isset($_SESSION['trans_failed']) && !empty($_SESSION['trans_failed'])) {
         $confirmation = $_SESSION['trans_failed'];
-        add_filter('gform_validation_message', 'change_message', 10, 2);
-    } elseif (isset($_SESSION['trans_declined']) && ! empty($_SESSION['trans_declined'])) {
+        add_filter('gform_validation_message', "{$ns}change_message", 10, 2);
+    } elseif (isset($_SESSION['trans_declined']) && !empty($_SESSION['trans_declined'])) {
         $confirmation = $_SESSION['trans_declined'];
-        add_filter('gform_validation_message', 'change_message', 10, 2);
+        add_filter('gform_validation_message', "{$ns}change_message", 10, 2);
     }
 
     return $form;
