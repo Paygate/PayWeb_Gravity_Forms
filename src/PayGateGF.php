@@ -942,7 +942,6 @@ class PayGateGF extends \GFPaymentAddOn
         unset($fields['CHECKSUM']);
         $checksum = md5(implode('', $fields) . $merchant_key);
         print $payGate->getPaygatePostForm($fields['PAY_REQUEST_ID'], $checksum);
-        exit;
     }
 
     public function get_product_query_string($submission_data, $entry_id)
