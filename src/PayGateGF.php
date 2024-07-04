@@ -46,7 +46,7 @@ class PayGateGF extends \GFPaymentAddOn
     protected $_capabilities_uninstall = 'gravityforms_paygate_uninstall';
     protected $_enable_rg_autoupgrade = false;
 
-    private const H6_TAG = '<h6>';
+    private const H6_TAG         = '<h6>';
     private const H6_TAG_CLOSING = '</h6>';
 
     public static function get_instance()
@@ -187,7 +187,7 @@ class PayGateGF extends \GFPaymentAddOn
 
     public static function notify_handler()
     {
-        if (isset($_GET["page"])) {
+        if (isset($_POST['PAY_REQUEST_ID']) && isset($_GET["page"])) {
             // Notify paygate that the request was successful
             echo "OK   ";
 
@@ -333,7 +333,7 @@ class PayGateGF extends \GFPaymentAddOn
         $paygate = PayGateGF::get_instance();
         $feed    = $paygate->get_feeds($form_id);
 
-        // Ignore ITN messages from forms that are no longer configured with the PayGate add-on
+        // Ignore ITN messages from forms that are no longer configured with the Paygate add-on
         if (!$feed) {
             return false;
         }
@@ -435,9 +435,9 @@ class PayGateGF extends \GFPaymentAddOn
                 'required' => true,
                 'tooltip'  => self::H6_TAG .
                               __('Paygate ID', 'gravityformspaygate') .
-                              self::H6_TAG_CLOSING.
+                              self::H6_TAG_CLOSING .
                               __(
-                                  'This is the PayGate ID, received from PayGate.',
+                                  'This is the Paygate ID, received from Paygate.',
                                   'gravityformspaygate'
                               ),
             ),
@@ -447,10 +447,10 @@ class PayGateGF extends \GFPaymentAddOn
                 'type'     => 'text',
                 'class'    => 'medium',
                 'required' => true,
-                'tooltip'  => self::H6_TAG  .
+                'tooltip'  => self::H6_TAG .
                               __('Paygate Merchant Key', 'gravityformspaygate') .
                               self::H6_TAG_CLOSING .
-                              __('This is the Encryption Key set in the PayGate Back Office.', 'gravityformspaygate'),
+                              __('This is the Encryption Key set in the Paygate Back Office.', 'gravityformspaygate'),
             ),
             array(
                 'name'          => 'testmode',
@@ -470,11 +470,11 @@ class PayGateGF extends \GFPaymentAddOn
                 ),
                 'horizontal'    => true,
                 'default_value' => 'no',
-                'tooltip'       => self::H6_TAG  .
+                'tooltip'       => self::H6_TAG .
                                    __('Mode', 'gravityformspaygate') .
                                    self::H6_TAG_CLOSING .
                                    __(
-                                       'Uses a PayGate test account. Request test cards from PayGate',
+                                       'Uses a Paygate test account. Request test cards from Paygate',
                                        'gravityformspaygate'
                                    ),
             ),
@@ -496,7 +496,7 @@ class PayGateGF extends \GFPaymentAddOn
                 ),
                 'horizontal'    => true,
                 'default_value' => 'no',
-                'tooltip'       => self::H6_TAG  .
+                'tooltip'       => self::H6_TAG .
                                    __('Disable IPN', 'gravityformspaygate') .
                                    self::H6_TAG_CLOSING .
                                    __(
@@ -518,7 +518,7 @@ class PayGateGF extends \GFPaymentAddOn
                 ),
                 'horizontal'    => true,
                 'default_value' => 'yes',
-                'tooltip'       => self::H6_TAG  .
+                'tooltip'       => self::H6_TAG .
                                    __(
                                        'Use Custom Confirmation Page',
                                        'gravityformspaygate'
@@ -532,7 +532,7 @@ class PayGateGF extends \GFPaymentAddOn
                 'label'   => __('Successful Page Url', 'gravityformspaygate'),
                 'type'    => 'text',
                 'class'   => 'medium',
-                'tooltip' => self::H6_TAG  .
+                'tooltip' => self::H6_TAG .
                              __('Successful Page Url', 'gravityformspaygate') .
                              self::H6_TAG_CLOSING .
                              __('Enter a thank you page url when a transaction is successful.', 'gravityformspaygate'),
@@ -542,7 +542,7 @@ class PayGateGF extends \GFPaymentAddOn
                 'label'   => __('Failed Page Url', 'gravityformspaygate'),
                 'type'    => 'text',
                 'class'   => 'medium',
-                'tooltip' => self::H6_TAG  .
+                'tooltip' => self::H6_TAG .
                              __('Failed Page Url', 'gravityformspaygate') .
                              self::H6_TAG_CLOSING .
                              __(
@@ -942,7 +942,8 @@ class PayGateGF extends \GFPaymentAddOn
         unset($fields['CHECKSUM']);
         $checksum = md5(implode('', $fields) . $merchant_key);
         print $payGate->getPaygatePostForm($fields['PAY_REQUEST_ID'], $checksum);
-        exit;
+
+        return "";
     }
 
     public function get_product_query_string($submission_data, $entry_id)
@@ -1372,7 +1373,7 @@ class PayGateGF extends \GFPaymentAddOn
     {
         ?>
         <script type="text/javascript">
-          function dismissMenu () {
+          function dismissMenu() {
             jQuery('#gf_spinner').show();
             jQuery.post(ajaxurl, {
                 action: 'gf_dismiss_paygate_menu'
