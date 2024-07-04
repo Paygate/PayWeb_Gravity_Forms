@@ -4,8 +4,8 @@
  * Plugin Name: Gravity Forms Paygate Add-On
  * Plugin URI: https://github.com/PayGate/PayWeb_Gravity_Forms
  * Description: Integrates Gravity Forms with Paygate, a South African payment gateway.
- * Version: 2.5.3
- * Tested: 6.4
+ * Version: 2.5.4
+ * Tested: 6.5
  * Author: Payfast (Pty) Ltd
  * Author URI: https://payfast.io/
  * Developer: App Inlet (Pty) Ltd
@@ -83,8 +83,8 @@ function change_message($message, $form)
 {
     if (
         isset($_SESSION['trans_failed']) && !empty($_SESSION['trans_failed']) && strlen(
-            $_SESSION['trans_failed']
-        ) > 0
+                                                                                     $_SESSION['trans_failed']
+                                                                                 ) > 0
     ) {
         $err_msg = $_SESSION['trans_failed'];
 
