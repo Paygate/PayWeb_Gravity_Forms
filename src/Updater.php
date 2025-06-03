@@ -2,6 +2,9 @@
 
 namespace PayGate\GravityFormsPayGatePlugin;
 
+use stdClass;
+use WP_Error;
+
 /**
  *
  *
@@ -39,20 +42,25 @@ class Updater
     private const VERSION = 1.7;
 
     /**
-     * @var $config the config for the updater
+     * The config for the updater
+     *
+     * @var string|array|object $config
      * @access public
      */
-    public $config;
+    public string|array|object $config;
 
     /**
-     * @var $missing_config any config that is missing from the initialization of this instance
+     * Any config that is missing from the initialization of this instance
+     *
+     * @var $missing_config
      * @access public
      */
     public $missing_config;
 
     /**
-     * @var $github_data temporiraly store the data fetched from GitHub, allows us to only load the data once
-     * per class instance
+     * Temporiraly store the data fetched from GitHub, allows us to only load the data once per class instance
+     *
+     * @var $github_data
      * @access private
      */
     private $github_data;
@@ -60,20 +68,20 @@ class Updater
     /**
      * Class Constructor
      *
-     * @param array $config the configuration required for the updater to work
+     * @param string|array|object $config the configuration required for the updater to work
      *
      * @return void
      * @see has_minimum_config()
      * @since 1.0
      */
-    public function __construct($config = array())
+    public function __construct(string|array|object $config = [])
     {
-        $defaults = array(
+        $defaults = [
             'slug'               => plugin_basename(__FILE__),
             'proper_folder_name' => dirname(plugin_basename(__FILE__)),
             'sslverify'          => true,
             'access_token'       => '',
-        );
+        ];
 
         $this->config = wp_parse_args($config, $defaults);
 
@@ -89,24 +97,27 @@ class Updater
 
         $this->set_defaults();
 
-        add_filter('pre_set_site_transient_update_plugins', array($this, 'api_check'));
+        add_filter('pre_set_site_transient_update_plugins', [$this, 'api_check']);
 
         // Hook into the plugin details screen
-        add_filter('plugins_api', array($this, 'get_plugin_info'), 10, 3);
-        add_filter('upgrader_post_install', array($this, 'upgrader_post_install'), 10, 3);
+        add_filter('plugins_api', [$this, 'get_plugin_info'], 10, 3);
+        add_filter('upgrader_post_install', [$this, 'upgrader_post_install'], 10, 3);
 
         // set timeout
-        add_filter('http_request_timeout', array($this, 'http_request_timeout'));
+        add_filter('http_request_timeout', [$this, 'http_request_timeout']);
 
         // set sslverify for zip download
-        add_filter('http_request_args', array($this, 'http_request_sslverify'), 10, 2);
+        add_filter('http_request_args', [$this, 'http_request_sslverify'], 10, 2);
     }
 
+    /**
+     * @return bool
+     */
     public function has_minimum_config()
     {
-        $this->missing_config = array();
+        $this->missing_config = [];
 
-        $required_config_params = array(
+        $required_config_params = [
             'api_url',
             'raw_url',
             'github_url',
@@ -114,7 +125,7 @@ class Updater
             'requires',
             'tested',
             'readme',
-        );
+        ];
 
         foreach ($required_config_params as $required_param) {
             if (empty($this->config[$required_param])) {
@@ -149,7 +160,7 @@ class Updater
             extract(parse_url($this->config['zip_url'])); // $scheme, $host, $path
 
             $zip_url = $scheme . '://api.github.com/repos' . $path;
-            $zip_url = add_query_arg(array('access_token' => $this->config['access_token']), $zip_url);
+            $zip_url = add_query_arg(['access_token' => $this->config['access_token']], $zip_url);
 
             $this->config['zip_url'] = $zip_url;
         }
@@ -221,7 +232,7 @@ class Updater
      * @param unknown $args
      * @param unknown $url
      *
-     * @return mixed
+     * @return unknown
      */
     public function http_request_sslverify($args, $url)
     {
@@ -242,17 +253,17 @@ class Updater
     {
         $assest_url = $this->config['raw_url'] . '/assets/images/';
 
-        return array(
+        return [
             'default' => $assest_url . 'icon-128x128.png',
             '1x'      => $assest_url . 'icon-128x128.png',
             '2x'      => $assest_url . 'icon-256x256.png',
-        );
+        ];
     }
 
     /**
      * Get Raw Response from GitHub
      *
-     * @return int $raw_response the raw response
+     * @return array|WP_Error
      * @since 1.7
      */
     public function get_raw_response()
@@ -329,29 +340,29 @@ class Updater
      *
      * @param string $query
      *
-     * @return mixed
+     * @return array|WP_Error
      * @since 1.6
      */
-    public function remote_get($query)
+    public function remote_get(string $query)
     {
         if (!empty($this->config['access_token'])) {
-            $query = add_query_arg(array('access_token' => $this->config['access_token']), $query);
+            $query = add_query_arg(['access_token' => $this->config['access_token']], $query);
         }
 
-        return wp_remote_get($query, array(
+        return wp_remote_get($query, [
             'sslverify' => $this->config['sslverify'],
-        ));
+        ]);
     }
 
     /**
      * Get GitHub Data from the specified repository
      *
-     * @return array $github_data the data
+     * @return array|false
      * @since 1.0
      */
     public function get_github_data()
     {
-        if (isset($this->github_data) && !empty($this->github_data)) {
+        if (!empty($this->github_data)) {
             $github_data = $this->github_data;
         } else {
             $github_data = get_site_transient(md5($this->config['slug']) . '_github_data');
@@ -427,7 +438,7 @@ class Updater
     /**
      * Get Plugin data
      *
-     * @return object $data the data
+     * @return array $data the data
      * @since 1.0
      */
     public function get_plugin_data()
@@ -459,11 +470,11 @@ class Updater
         $update = version_compare($this->config['new_version'], $this->config['version']);
 
         if (1 === $update) {
-            $response              = new \stdClass();
+            $response              = new stdClass();
             $response->new_version = $this->config['new_version'];
             $response->slug        = $this->config['proper_folder_name'];
             $response->url         = add_query_arg(
-                array('access_token' => $this->config['access_token']),
+                ['access_token' => $this->config['access_token']],
                 $this->config['github_url']
             );
             $response->package     = $this->config['zip_url'];
@@ -471,9 +482,7 @@ class Updater
             $response->tested      = $this->config['new_tested'];
 
             // If response is false, don't alter the transient
-            if (false !== $response) {
-                $transient->response[$this->config['slug']] = $response;
-            }
+            $transient->response[$this->config['slug']] = $response;
         }
 
         return $transient;
@@ -482,14 +491,12 @@ class Updater
     /**
      * Get Plugin info
      *
-     * @param bool $false always false
-     * @param string $action the API function being performed
-     * @param object $args plugin arguments
+     * @param object $response
      *
-     * @return object $response the plugin info
+     * @return false|object
      * @since 1.0
      */
-    public function get_plugin_info($false, $action, $response)
+    public function get_plugin_info(object $response)
     {
         // Check if this call API is for the right plugin
         if (!isset($response->slug) || $response->slug != $this->config['proper_folder_name']) {
@@ -505,10 +512,10 @@ class Updater
             $res->tested        = $this->config['new_tested'];
             $res->downloaded    = 0;
             $res->last_updated  = $this->config['last_updated'];
-            $res->sections      = array(
+            $res->sections      = [
                 'description' => $this->config['description'],
                 'changelog'   => $this->config['changelog'],
-            );
+            ];
             $res->download_link = $this->config['zip_url'];
 
             // Useful fields for a later version
@@ -525,14 +532,14 @@ class Updater
      * Upgrader/Updater
      * Move & activate the plugin, echo the update message
      *
-     * @param boolean $true always true
+     * @param bool $true always true
      * @param mixed $hook_extra not used
      * @param array $result the result of the move
      *
      * @return array $result the result of the move
      * @since 1.0
      */
-    public function upgrader_post_install($true, $hook_extra, $result)
+    public function upgrader_post_install(bool $true, $hook_extra, array $result)
     {
         global $wp_filesystem;
 

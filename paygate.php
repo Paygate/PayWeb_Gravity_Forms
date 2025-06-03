@@ -4,8 +4,8 @@
  * Plugin Name: Gravity Forms Paygate Add-On
  * Plugin URI: https://github.com/PayGate/PayWeb_Gravity_Forms
  * Description: Integrates Gravity Forms with Paygate, a South African payment gateway.
- * Version: 2.5.4
- * Tested: 6.5
+ * Version: 2.6.0
+ * Tested: 6.7
  * Author: Payfast (Pty) Ltd
  * Author URI: https://payfast.io/
  * Developer: App Inlet (Pty) Ltd
@@ -13,7 +13,7 @@
  * Text Domain: gravityformspaygate
  * Domain Path: /languages
  *
- * Copyright: © 2024 Payfast (Pty) Ltd.
+ * Copyright: © 2025 Payfast (Pty) Ltd.
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  */
@@ -39,7 +39,7 @@ if (!headers_sent() && empty(session_id())) {
     }
 }
 
-add_action('gform_loaded', array(Bootstrap::class, 'load'), 5);
+add_action('gform_loaded', [Bootstrap::class, 'load'], 5);
 // phpcs:enable
 
 /**
@@ -57,10 +57,10 @@ function paygate_init(): void
      *
      */
 
-    if (is_admin()) {
-        // note the use of is_admin() to double check that this is happening in the admin
+    if (is_admin() && strpos($_SERVER['PHP_SELF'], 'plugins.php') !== false) {
+        // note the use of is_admin() to double check that this is happening in the admin and at the plugins page
 
-        $config = array(
+        $config = [
             'slug'               => plugin_basename(__FILE__),
             'proper_folder_name' => 'gravity-forms-paygate-plugin',
             'api_url'            => 'https://api.github.com/repos/PayGate/PayWeb_Gravity_Forms',
@@ -73,23 +73,26 @@ function paygate_init(): void
             'tested'             => '6.0.2',
             'readme'             => 'README.md',
             'access_token'       => '',
-        );
+        ];
 
         new Updater($config);
     }
 }
 
+/**
+ * @param $message
+ * @param $form
+ *
+ * @return mixed|string
+ */
 function change_message($message, $form)
 {
-    if (
-        isset($_SESSION['trans_failed']) && !empty($_SESSION['trans_failed']) && strlen(
-                                                                                     $_SESSION['trans_failed']
-                                                                                 ) > 0
-    ) {
+    if (!empty($_SESSION['trans_failed']) && strlen($_SESSION['trans_failed']) > 0)
+    {
         $err_msg = $_SESSION['trans_failed'];
 
         return "<div class='validation_error'>" . $_SESSION['trans_failed'] . '</div>';
-    } elseif (isset($_SESSION['trans_declined']) && !empty($_SESSION['trans_declined'])) {
+    } elseif (!empty($_SESSION['trans_declined'])) {
         $err_msg = $_SESSION['trans_declined'];
 
         return "<div class='validation_error'>" . $_SESSION['trans_declined'] . '</div>';
@@ -98,37 +101,42 @@ function change_message($message, $form)
     }
 }
 
+/**
+ * @param $form
+ *
+ * @return mixed
+ */
 function gform_pre_render_callback($form)
 {
     ob_start();
     ob_clean();
     $form_id = $form['id'];
-    define("SCRIPT", '<script type="text/javascript">');
-    define("QUERY", 'jQuery(document).ready(function($){');
-    define("QUERY_FORM", 'jQuery("#gform_');
+    define('SCRIPT', '<script type="text/javascript">');
+    define('QUERY', 'jQuery(document).ready(function($){');
+    define('QUERY_FORM', 'jQuery("#gform_');
     define('APPEND', ' .gform_heading").append("<div class=\"validation_error\">');
     define('DIV_TAG_CLOSING', '</div>")');
     define('SCRIPT_TAG_CLOSING', '</script>');
 
-    if (isset($_SESSION['trans_failed']) && !empty($_SESSION['trans_failed'])) {
+    if (!empty($_SESSION['trans_failed'])) {
         $msg = $_SESSION['trans_failed'];
-        echo constant("SCRIPT");
-        echo constant("Query");
-        echo constant("QUERY_FORM") . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
+        echo constant('SCRIPT');
+        echo constant('Query');
+        echo constant('QUERY_FORM') . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
         echo '});';
         echo constant('SCRIPT_TAG_CLOSING');
-    } elseif (isset($_SESSION['trans_declined']) && !empty($_SESSION['trans_declined'])) {
+    } elseif (!empty($_SESSION['trans_declined'])) {
         $msg = $_SESSION['trans_declined'];
-        echo constant("SCRIPT");
+        echo constant('SCRIPT');
         echo constant('QUERY');
-        echo constant("QUERY_FORM") . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
+        echo constant('QUERY_FORM') . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
         echo '});';
         echo constant('SCRIPT_TAG_CLOSING');
-    } elseif (isset($_SESSION['trans_cancelled']) && !empty($_SESSION['trans_cancelled'])) {
+    } elseif (!empty($_SESSION['trans_cancelled'])) {
         $msg = $_SESSION['trans_cancelled'];
-        echo constant("SCRIPT");
+        echo constant('SCRIPT');
         echo constant('QUERY');
-        echo constant("QUERY_FORM") . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
+        echo constant('QUERY_FORM') . $form_id . constant('APPEND') . $msg . constant('DIV_TAG_CLOSING');
         echo '});';
         echo constant('SCRIPT_TAG_CLOSING');
     }
@@ -136,6 +144,11 @@ function gform_pre_render_callback($form)
     return $form;
 }
 
+/**
+ * @param $form
+ *
+ * @return mixed
+ */
 function cleanTransaction_status($form)
 {
     unset($_SESSION['trans_failed']);
@@ -145,13 +158,18 @@ function cleanTransaction_status($form)
     return $form;
 }
 
+/**
+ * @param $form
+ *
+ * @return mixed
+ */
 function gw_conditional_requirement($form)
 {
     global $ns;
-    if (isset($_SESSION['trans_failed']) && !empty($_SESSION['trans_failed'])) {
+    if (!empty($_SESSION['trans_failed'])) {
         $confirmation = $_SESSION['trans_failed'];
         add_filter('gform_validation_message', "{$ns}change_message", 10, 2);
-    } elseif (isset($_SESSION['trans_declined']) && !empty($_SESSION['trans_declined'])) {
+    } elseif (!empty($_SESSION['trans_declined'])) {
         $confirmation = $_SESSION['trans_declined'];
         add_filter('gform_validation_message', "{$ns}change_message", 10, 2);
     }
@@ -165,7 +183,7 @@ function gw_conditional_requirement($form)
  * @param string $string string to be encrypted/decrypted
  * @param string $action what to do with this? e for encrypt, d for decrypt
  */
-function GF_encryption($string, $action = 'e')
+function GF_encryption(string $string, string $action = 'e')
 {
     // you may change these values to your own
     /** @noinspection PhpUndefinedConstantInspection */
@@ -174,7 +192,7 @@ function GF_encryption($string, $action = 'e')
     $secret_iv = NONCE_SALT;
 
     $output         = false;
-    $encrypt_method = "AES-256-CBC";
+    $encrypt_method = 'AES-256-CBC';
     $key            = hash('sha256', $secret_key);
     $iv             = substr(hash('sha256', $secret_iv), 0, 16);
 

@@ -1,16 +1,49 @@
 # PayWeb_Gravity_Forms
 
-## Paygate Gravity Forms plugin v2.5.4 for Gravity Forms v2.8.13, WordPress v6.5
+## Paygate Gravity Forms Plugin v2.6.0 for Gravity Forms v2.9.1
 
 This is the Paygate plugin for Gravity Forms. Please feel free to contact the Payfast support team at
 support@payfast.help should you require any assistance.
 
 ## Installation
 
-[![How To Setup Paygate for Gravity Forms](https://appinlet.com/wp-content/uploads/2021/01/How-To-Setup-PayGate-PayWeb-for-Gravity-Forms.jpg)](https://www.youtube.com/watch?v=r5nx1EfyOlo "How To Setup Paygate for Gravity Forms")
+1. **Download the Latest Release**
+    - Visit the [releases page](https://github.com/Paygate/PayWeb_Gravity_Forms/releases) and
+      download [gravity-forms-paygate-plugin.zip](https://github.com/Paygate/PayWeb_Gravity_Forms/releases/download/v2.6.0/gravity-forms-paygate-plugin.zip).
 
-Please navigate to the [releases page](https://github.com/PayGate/PayWeb_Gravity_Forms/releases), download the latest
-release (v2.5.4) and unzip. You will then be able to follow the integration guide PDF which is included in the zip.
+2. **Install the Plugina**
+    - Log in to your WordPress Admin panel.
+    - Navigate to **Plugins > Add New > Upload Plugin**.
+    - Click **Choose File** and locate the `gravity-forms-paygate-plugin.zip` file.
+    - Click **Install Now**.
+    - Click **Activate Plugin**.
+    - Proceed to **Step 4** under manual instructions below.
+
+3. **Configure the Plugin**
+    - Click on the **Forms** link in your WordPress Admin.
+    - Select the form you want to integrate with Paygate.
+    - Under **Form Settings**, click **Paygate**.
+    - Under the **Paygate Feeds** section, click **Add New** and provide the required data:
+        - **Transaction Type**: Select "Products and Services."
+        - **Map Paygate Fields**: Ensure the following fields are properly mapped:
+            - Pricing Fields
+            - Address Fields
+            - Email Field
+            - Map Paygate **Country Field** with the form **Country Field**.
+            - Map Paygate **Email Field** with the form **Email Field**.
+    - Click **Update Settings/Save Settings** to save the configuration.
+
+> ![sample-1.jpg](assets/images/sample-1.jpg)
+> ![sample-2.jpg](assets/images/sample-2.jpg)
+
+4. **Configure Confirmation Messages**
+    - Go to the **Confirmations** section.
+    - Add three new confirmations with the following names:
+        - **Confirmation Name: failed**
+        - **Confirmation Name: cancelled**
+        - **Confirmation Name: approved**
+
+> ![sample-3.jpg](assets/images/sample-3.jpg)
 
 ## Collaboration
 

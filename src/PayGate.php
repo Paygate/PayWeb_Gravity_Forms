@@ -10,18 +10,24 @@
 
 namespace PayGate\GravityFormsPayGatePlugin;
 
+/**
+ *
+ */
 class PayGate
 {
-    public $paygate_id;
-    public $encryption_key;
-    public $enable_logging;
-    public $logging_path;
+    public string $paygate_id;
+    public string $encryption_key;
+    public string $enable_logging;
+    public string $logging_path;
 
     public function __construct()
     {
         GWPostContentMergeTags::get_instance();
     }
 
+    /**
+     * @return void
+     */
     public function loadSettings()
     {
         // Get Settings From XML File
@@ -34,65 +40,65 @@ class PayGate
         $this->logging_path   = (string)$settings->logging_path->value;
     }
 
-    public function curlPost($url, $fields)
-    {
-        $curl = curl_init($url);
-
-        // Set the url, number of POST vars, POST data
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_NOBODY, false);
-        curl_setopt($curl, CURLOPT_REFERER, $_SERVER['HTTP_HOST']);
-        curl_setopt($curl, CURLOPT_POST, 1);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $fields);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        $response = curl_exec($curl);
-        curl_close($curl);
-
-        return $response;
-    }
-
+    /**
+     * @param $logging_path
+     * @param $prefix
+     * @param $type
+     *
+     * @return void
+     */
     public function logPostRequest($logging_path, $prefix, $type)
     {
         $content = print_r($_POST, true);
-        $fp      = fopen("$logging_path/$prefix-$type.log", "wb");
+        $fp      = fopen("$logging_path/$prefix-$type.log", 'wb');
         fwrite($fp, $content);
         fclose($fp);
     }
 
+    /**
+     * @param $key
+     * @param $type
+     *
+     * @return mixed|null
+     */
     public function accessValue($key, $type)
     {
         if ($type == 'post') {
             $value = array_key_exists($key, $_POST) ? $_POST[$key] : null;
         } elseif ($type == 'session') {
-            $value = isset($_SESSION[$key]) ? $_SESSION[$key] : null;
+            $value = $_SESSION[$key] ?? null;
         }
 
         return $value;
     }
 
+    /**
+     * @return void
+     */
     public function savePostSession()
     {
         $_SESSION          = $_POST;
         $_SESSION['store'] = $_SERVER['HTTP_REFERER'];
     }
 
-    public function getPaygatePostForm($pay_request_id, $checksum)
+    /**
+     * @param $pay_request_id
+     * @param $checksum
+     *
+     * @return string
+     */
+    public function getPaygatePostForm($htmlForm)
     {
-        $processUrl = PayGateGF::PROCESSS_TRANS_URL;
-
         return "
-          <form action='$processUrl' method='post' name='paygate'>
-               <input name='PAY_REQUEST_ID' type='hidden' value='$pay_request_id' />
-               <input name='CHECKSUM' type='hidden' value='$checksum' />
-          </form>
+          $htmlForm;
           <script>
-               document.forms['paygate'].submit();
+               document.forms['paygate_payment_form'].submit();
           </script>";
     }
 
+    /**
+     * @return array|false
+     */
     public function getPostData()
     {
         // Posted variables from ITN
@@ -111,7 +117,13 @@ class PayGate
         }
     }
 
-    public function logData($msg = '', $close = false)
+    /**
+     * @param string $msg
+     * @param $close
+     *
+     * @return void
+     */
+    public function logData(string $msg = '', $close = false)
     {
         static $fh = 0;
 
