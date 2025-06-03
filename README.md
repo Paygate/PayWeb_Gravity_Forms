@@ -17,7 +17,6 @@ support@payfast.help should you require any assistance.
     - Click **Choose File** and locate the `gravity-forms-paygate-plugin.zip` file.
     - Click **Install Now**.
     - Click **Activate Plugin**.
-    - Proceed to **Step 4** under manual instructions below.
 
 3. **Configure the Plugin**
     - Click on the **Forms** link in your WordPress Admin.
