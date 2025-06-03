@@ -5,7 +5,7 @@
 ### Added
 
 - Tested with WordPress 6.7.1 and Gravity Forms 2.9.1.
-- Code standards for PHP 8.3.
+- Code standards for PHP 8.1.
 - Integrated with the Payfast Common Library.
 
 ## [2.5.4](https://github.com/Paygate/PayWeb_Gravity_Forms/releases/tag/v2.5.4)
