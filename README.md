@@ -1,6 +1,6 @@
 # PayWeb_Gravity_Forms
 
-## Paygate Gravity Forms Plugin v2.6.0 for Gravity Forms v2.9.1
+## Paygate Gravity Forms Plugin v2.6.1 for Gravity Forms v2.9.1
 
 This is the Paygate plugin for Gravity Forms. Please feel free to contact the Payfast support team at
 support@payfast.help should you require any assistance.
@@ -9,7 +9,7 @@ support@payfast.help should you require any assistance.
 
 1. **Download the Latest Release**
     - Visit the [releases page](https://github.com/Paygate/PayWeb_Gravity_Forms/releases) and
-      download [gravity-forms-paygate-plugin.zip](https://github.com/Paygate/PayWeb_Gravity_Forms/releases/download/v2.6.0/gravity-forms-paygate-plugin.zip).
+      download [gravity-forms-paygate-plugin.zip](https://github.com/Paygate/PayWeb_Gravity_Forms/releases/download/v2.6.1/gravity-forms-paygate-plugin.zip).
 
 2. **Install the Plugina**
     - Log in to your WordPress Admin panel.
