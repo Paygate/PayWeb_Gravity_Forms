@@ -4,8 +4,8 @@
  * Plugin Name: Gravity Forms Paygate Add-On
  * Plugin URI: https://github.com/PayGate/PayWeb_Gravity_Forms
  * Description: Integrates Gravity Forms with Paygate, a South African payment gateway.
- * Version: 2.6.0
- * Tested: 6.7
+ * Version: 2.6.1
+ * Tested: 6.8
  * Author: Payfast (Pty) Ltd
  * Author URI: https://payfast.io/
  * Developer: App Inlet (Pty) Ltd

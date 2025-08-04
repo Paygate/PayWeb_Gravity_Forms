@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.6.1](https://github.com/Paygate/PayWeb_Gravity_Forms/releases/tag/v2.6.1)
+
+### Fixed
+
+- Resolved issue with Gravity Forms Multi Currency Add-on.
+
 ## [2.6.0](https://github.com/Paygate/PayWeb_Gravity_Forms/releases/tag/v2.6.0)
 
 ### Added

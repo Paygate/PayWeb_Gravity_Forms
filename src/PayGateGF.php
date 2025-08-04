@@ -784,6 +784,8 @@ class PayGateGF extends GFPaymentAddOn
             $country_code3 = 'ZAF'; // Default value
         }
 
+        $currency = rgar( $entry, 'currency' ) ?? GFCommon::get_currency();
+
         $fields = [
             'REFERENCE'        => $entry['id'],
             'AMOUNT'           => number_format(
@@ -792,7 +794,7 @@ class PayGateGF extends GFPaymentAddOn
                 '',
                 ''
             ),
-            'CURRENCY'         => GFCommon::get_currency(),
+            'CURRENCY'         => $currency,
             'RETURN_URL'       => $return_url,
             'TRANSACTION_DATE' => date('Y-m-d H:m:s'),
             'LOCALE'           => 'en-za',
@@ -806,7 +808,7 @@ class PayGateGF extends GFPaymentAddOn
 
         $fields['USER1'] = $entry['created_by'];
         $fields['USER2'] = get_bloginfo('admin_email');
-        $fields['USER3'] = 'gravityforms-v2.5.2';
+        $fields['USER3'] = 'gravityforms-v2.6.1';
 
         $paymentRequest = new PaymentRequest($merchant_id, $merchant_key);
         $paygate = new PayGate();
